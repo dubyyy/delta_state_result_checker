@@ -19,7 +19,7 @@ const Header = () => {
               </h1>
               <p className="text-xs md:text-sm lg:text-base opacity-90 flex items-center gap-2">
                 <GraduationCap className="h-3 w-3 md:h-4 md:w-4" />
-                Ministry of Primary Education Portall
+                Ministry of Primary Education Portal
               </p>
             </div>
           </Link>

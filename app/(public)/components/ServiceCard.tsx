@@ -23,12 +23,12 @@ const ServiceCard = ({
         <CardContent className="p-6">
           <div
             className={`inline-flex p-3 rounded-lg mb-4 ${
-              variant === "primary" ? "bg-primary/10" : "bg-secondary/10"
+              variant === "primary" ? "bg-primary/10" : "bg-secondary/30"
             }`}
           >
             <Icon
               className={`h-6 w-6 ${
-                variant === "primary" ? "text-primary" : "text-secondary-foreground"
+                variant === "primary" ? "text-primary" : "text-secondary-foreground/90"
               }`}
             />
           </div>
