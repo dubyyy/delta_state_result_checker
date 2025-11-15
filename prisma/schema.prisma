@@ -89,3 +89,56 @@ model Result {
   userId              String?
   user                User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model School {
+  id            String   @id @default(cuid())
+  lgaCode       String
+  schoolCode    String
+  schoolName    String
+  password      String
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  studentRegistrations StudentRegistration[]
+
+  @@unique([lgaCode, schoolCode])
+}
+
+model StudentRegistration {
+  id              String   @id @default(cuid())
+  studentNumber   String   @unique
+  firstname       String
+  othername       String?
+  lastname        String
+  gender          String
+  schoolType      String
+  passport        String?
+  
+  // English scores
+  englishTerm1    String?
+  englishTerm2    String?
+  englishTerm3    String?
+  
+  // Arithmetic scores
+  arithmeticTerm1 String?
+  arithmeticTerm2 String?
+  arithmeticTerm3 String?
+  
+  // General Paper scores
+  generalTerm1    String?
+  generalTerm2    String?
+  generalTerm3    String?
+  
+  // Religious Studies
+  religiousType   String?
+  religiousTerm1  String?
+  religiousTerm2  String?
+  religiousTerm3  String?
+  
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

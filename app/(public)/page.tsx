@@ -13,32 +13,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
   const services = [
-    {
-      title: "Check Resit-Result Status",
-      description: "View your resit examination results and performance status",
-      icon: FileCheck,
-      href: "/check-resit",
-      variant: "primary" as const,
-    },
-    {
-      title: "Check Secondary Result Status",
-      description: "Access secondary school results using your examination number",
-      icon: GraduationCap,
-      href: "/secondary-result",
-      variant: "primary" as const,
-    },
+    
     {
       title: "Check Primary Result",
       description: "View primary school examination results and records",
       icon: FileText,
       href: "/primary-result",
-      variant: "secondary" as const,
-    },
-    {
-      title: "Register For Exam",
-      description: "Complete your examination registration online",
-      icon: UserPlus,
-      href: "/register",
       variant: "secondary" as const,
     },
     {
