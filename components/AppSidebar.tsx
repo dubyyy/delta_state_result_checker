@@ -9,7 +9,6 @@ import {
   Users, 
   School, 
   Settings, 
-  FileText,
   LogOut 
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -29,11 +28,6 @@ const navItems = [
     title: "Schools",
     href: "/admin/schools",
     icon: School,
-  },
-  {
-    title: "Pages",
-    href: "/admin/pages",
-    icon: FileText,
   },
   {
     title: "Settings",

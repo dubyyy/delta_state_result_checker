@@ -70,14 +70,40 @@ export async function GET(request: Request) {
     // Transform data for frontend
     const transformedStudents = students.map(student => ({
       id: student.id,
-      name: `${student.firstname} ${student.othername || ""} ${student.lastname}`.trim(),
-      lga: getLGAName(student.school.lgaCode),  // Convert code to full name
-      schoolCode: student.school.schoolCode,
-      schoolName: student.school.schoolName,
-      examNumber: student.studentNumber,
-      date: student.createdAt.toISOString().split("T")[0],
+      studentNumber: student.studentNumber,
+      firstname: student.firstname,
+      othername: student.othername,
+      lastname: student.lastname,
       gender: student.gender,
       schoolType: student.schoolType,
+      passport: student.passport,
+      
+      // English scores
+      englishTerm1: student.englishTerm1,
+      englishTerm2: student.englishTerm2,
+      englishTerm3: student.englishTerm3,
+      
+      // Arithmetic scores
+      arithmeticTerm1: student.arithmeticTerm1,
+      arithmeticTerm2: student.arithmeticTerm2,
+      arithmeticTerm3: student.arithmeticTerm3,
+      
+      // General Paper scores
+      generalTerm1: student.generalTerm1,
+      generalTerm2: student.generalTerm2,
+      generalTerm3: student.generalTerm3,
+      
+      // Religious Studies
+      religiousType: student.religiousType,
+      religiousTerm1: student.religiousTerm1,
+      religiousTerm2: student.religiousTerm2,
+      religiousTerm3: student.religiousTerm3,
+      
+      // Additional info for filters
+      lga: getLGAName(student.school.lgaCode),
+      schoolCode: student.school.schoolCode,
+      schoolName: student.school.schoolName,
+      date: student.createdAt.toISOString().split("T")[0],
     }));
     
     return NextResponse.json(transformedStudents);

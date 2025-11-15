@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Download, RotateCcw } from "lucide-react";
+import { Search, Filter, Download, RotateCcw, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,14 +23,40 @@ import { toast } from "sonner";
 
 interface Student {
   id: string;
-  name: string;
+  studentNumber: string;
+  firstname: string;
+  othername: string | null;
+  lastname: string;
+  gender: string;
+  schoolType: string;
+  passport: string | null;
+  
+  // English scores
+  englishTerm1: string | null;
+  englishTerm2: string | null;
+  englishTerm3: string | null;
+  
+  // Arithmetic scores
+  arithmeticTerm1: string | null;
+  arithmeticTerm2: string | null;
+  arithmeticTerm3: string | null;
+  
+  // General Paper scores
+  generalTerm1: string | null;
+  generalTerm2: string | null;
+  generalTerm3: string | null;
+  
+  // Religious Studies
+  religiousType: string | null;
+  religiousTerm1: string | null;
+  religiousTerm2: string | null;
+  religiousTerm3: string | null;
+  
+  // Additional info
   lga: string;
   schoolCode: string;
   schoolName: string;
-  examNumber: string;
   date: string;
-  gender: string;
-  schoolType: string;
 }
 
 export default function Students() {
@@ -167,37 +194,106 @@ export default function Students() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="overflow-hidden w-full">
         <CardHeader>
           <CardTitle>Registered Students ({students.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {students.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No students found</p>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>LGA</TableHead>
-                    <TableHead>School Code</TableHead>
-                    <TableHead>Exam Number</TableHead>
-                    <TableHead>Registration Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {students.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>{student.lga}</TableCell>
-                      <TableCell>{student.schoolCode}</TableCell>
-                      <TableCell>{student.examNumber}</TableCell>
-                      <TableCell>{student.date}</TableCell>
+            <div className="overflow-x-auto w-full" style={{ maxWidth: '100%' }}>
+              <div className="inline-block min-w-full align-middle">
+                <Table className="w-full table-fixed" style={{ minWidth: '1800px' }}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[80px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Photo</TableHead>
+                      <TableHead className="w-[150px] sticky left-[80px] bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Student Number</TableHead>
+                      <TableHead>First Name</TableHead>
+                      <TableHead>Other Name</TableHead>
+                      <TableHead>Last Name</TableHead>
+                      <TableHead>Gender</TableHead>
+                      <TableHead>School Type</TableHead>
+                      <TableHead colSpan={3} className="text-center border-l-2">English</TableHead>
+                      <TableHead colSpan={3} className="text-center border-l-2">Arithmetic</TableHead>
+                      <TableHead colSpan={3} className="text-center border-l-2">General Paper</TableHead>
+                      <TableHead colSpan={4} className="text-center border-l-2">Religious Studies</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
+                      <TableHead className="sticky left-[80px] bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
+                      <TableHead></TableHead>
+                      <TableHead></TableHead>
+                      <TableHead></TableHead>
+                      <TableHead></TableHead>
+                      <TableHead></TableHead>
+                      <TableHead className="text-center text-xs border-l-2">Term 1</TableHead>
+                      <TableHead className="text-center text-xs">Term 2</TableHead>
+                      <TableHead className="text-center text-xs">Term 3</TableHead>
+                      <TableHead className="text-center text-xs border-l-2">Term 1</TableHead>
+                      <TableHead className="text-center text-xs">Term 2</TableHead>
+                      <TableHead className="text-center text-xs">Term 3</TableHead>
+                      <TableHead className="text-center text-xs border-l-2">Term 1</TableHead>
+                      <TableHead className="text-center text-xs">Term 2</TableHead>
+                      <TableHead className="text-center text-xs">Term 3</TableHead>
+                      <TableHead className="text-center text-xs border-l-2">Type</TableHead>
+                      <TableHead className="text-center text-xs">Term 1</TableHead>
+                      <TableHead className="text-center text-xs">Term 2</TableHead>
+                      <TableHead className="text-center text-xs">Term 3</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {students.map((student) => {
+                      const initials = `${student.firstname[0]}${student.lastname[0]}`
+                        .toUpperCase();
+                      
+                      return (
+                        <TableRow key={student.id} className="group hover:bg-muted/50">
+                          <TableCell className="sticky left-0 bg-background group-hover:bg-muted/50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage 
+                                src={student.passport || ""} 
+                                alt={`${student.firstname} ${student.lastname}`}
+                                className="object-cover"
+                              />
+                              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                {initials || <User className="h-4 w-4" />}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TableCell>
+                          <TableCell className="font-medium sticky left-[80px] bg-background group-hover:bg-muted/50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{student.studentNumber}</TableCell>
+                          <TableCell>{student.firstname}</TableCell>
+                          <TableCell>{student.othername || "-"}</TableCell>
+                          <TableCell>{student.lastname}</TableCell>
+                          <TableCell>{student.gender}</TableCell>
+                          <TableCell>{student.schoolType}</TableCell>
+                          
+                          {/* English scores */}
+                          <TableCell className="text-center border-l-2">{student.englishTerm1 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.englishTerm2 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.englishTerm3 || "-"}</TableCell>
+                          
+                          {/* Arithmetic scores */}
+                          <TableCell className="text-center border-l-2">{student.arithmeticTerm1 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.arithmeticTerm2 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.arithmeticTerm3 || "-"}</TableCell>
+                          
+                          {/* General Paper scores */}
+                          <TableCell className="text-center border-l-2">{student.generalTerm1 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.generalTerm2 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.generalTerm3 || "-"}</TableCell>
+                          
+                          {/* Religious Studies */}
+                          <TableCell className="text-center border-l-2 text-xs">{student.religiousType || "-"}</TableCell>
+                          <TableCell className="text-center">{student.religiousTerm1 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.religiousTerm2 || "-"}</TableCell>
+                          <TableCell className="text-center">{student.religiousTerm3 || "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>

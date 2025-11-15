@@ -4,12 +4,34 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +43,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
 import { Badge } from "@/components/ui/badge";
 
 interface School {
@@ -94,7 +117,7 @@ export default function Schools() {
       });
 
       if (response.ok) {
-        setSchools(schools.filter(school => school.id !== id));
+        setSchools(schools.filter((school) => school.id !== id));
         toast.success("School deleted successfully");
       } else {
         toast.error("Failed to delete school");
@@ -106,12 +129,14 @@ export default function Schools() {
   };
 
   const handleToggleRegistration = (id: string) => {
-    // This would be implemented with a proper API endpoint
-    setSchools(schools.map(school => 
-      school.id === id 
-        ? { ...school, status: school.status === "Open" ? "Closed" : "Open" }
-        : school
-    ));
+    setSchools(
+      schools.map((school) =>
+        school.id === id
+          ? { ...school, status: school.status === "Open" ? "Closed" : "Open" }
+          : school
+      )
+    );
+
     toast.success("Registration status updated");
   };
 
@@ -126,15 +151,18 @@ export default function Schools() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Schools Management</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            Schools Management
+          </h2>
           <p className="text-muted-foreground mt-1">
             Add, edit, and manage schools in the system
           </p>
         </div>
-        
+
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -149,6 +177,7 @@ export default function Schools() {
                 Enter the details of the new school
               </DialogDescription>
             </DialogHeader>
+
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">School Name</Label>
@@ -156,21 +185,32 @@ export default function Schools() {
                   id="name"
                   placeholder="e.g., Government Secondary School"
                   value={newSchool.name}
-                  onChange={(e) => setNewSchool({ ...newSchool, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewSchool({ ...newSchool, name: e.target.value })
+                  }
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="code">School Code</Label>
                 <Input
                   id="code"
                   placeholder="e.g., AN001"
                   value={newSchool.code}
-                  onChange={(e) => setNewSchool({ ...newSchool, code: e.target.value })}
+                  onChange={(e) =>
+                    setNewSchool({ ...newSchool, code: e.target.value })
+                  }
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="lga">Local Government</Label>
-                <Select value={newSchool.lga} onValueChange={(value) => setNewSchool({ ...newSchool, lga: value })}>
+                <Select
+                  value={newSchool.lga}
+                  onValueChange={(value) =>
+                    setNewSchool({ ...newSchool, lga: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select LGA" />
                   </SelectTrigger>
@@ -179,13 +219,19 @@ export default function Schools() {
                     <SelectItem value="Aba South">Aba South</SelectItem>
                     <SelectItem value="Umuahia North">Umuahia North</SelectItem>
                     <SelectItem value="Bende">Bende</SelectItem>
-                    <SelectItem value="Isiala Ngwa North">Isiala Ngwa North</SelectItem>
+                    <SelectItem value="Isiala Ngwa North">
+                      Isiala Ngwa North
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
                 Cancel
               </Button>
               <Button onClick={handleAddSchool}>Add School</Button>
@@ -194,13 +240,16 @@ export default function Schools() {
         </Dialog>
       </div>
 
+      {/* TABLE SECTION */}
       <Card>
         <CardHeader>
           <CardTitle>All Schools ({schools.length})</CardTitle>
         </CardHeader>
+
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          {/* FIXED TABLE OVERFLOW */}
+          <div className="w-full overflow-x-auto rounded-md border">
+            <Table className="min-w-[800px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>School Name</TableHead>
@@ -210,27 +259,41 @@ export default function Schools() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {schools.map((school) => (
                   <TableRow key={school.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{school.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {school.name}
+                    </TableCell>
                     <TableCell>{school.code}</TableCell>
                     <TableCell>{school.lga}</TableCell>
+
                     <TableCell>
-                      <Badge variant={school.status === "Open" ? "default" : "secondary"}>
+                      <Badge
+                        variant={
+                          school.status === "Open" ? "default" : "secondary"
+                        }
+                      >
                         {school.status}
                       </Badge>
                     </TableCell>
+
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        
+
+                        {/* Toggle Registration */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button 
-                              variant={school.status === "Open" ? "destructive" : "default"} 
+                            <Button
+                              variant={
+                                school.status === "Open"
+                                  ? "destructive"
+                                  : "default"
+                              }
                               size="sm"
                             >
                               <LockKeyhole className="h-4 w-4" />
@@ -239,37 +302,57 @@ export default function Schools() {
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>
-                                {school.status === "Open" ? "Close" : "Open"} Registration
+                                {school.status === "Open"
+                                  ? "Close"
+                                  : "Open"}{" "}
+                                Registration
                               </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to {school.status === "Open" ? "close" : "open"} registration for {school.name}?
+                                Are you sure you want to{" "}
+                                {school.status === "Open"
+                                  ? "close"
+                                  : "open"}{" "}
+                                registration for {school.name}?
                               </AlertDialogDescription>
                             </AlertDialogHeader>
+
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleToggleRegistration(school.id)}>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  handleToggleRegistration(school.id)
+                                }
+                              >
                                 Confirm
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
 
+                        {/* Delete */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="outline" size="sm">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
+
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete School</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete {school.name}? This action cannot be undone.
+                                Are you sure you want to delete {school.name}?
+                                This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
+
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteSchool(school.id)}>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  handleDeleteSchool(school.id)
+                                }
+                              >
                                 Delete
                               </AlertDialogAction>
                             </AlertDialogFooter>
