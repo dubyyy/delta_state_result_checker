@@ -17,8 +17,8 @@ const Header = () => {
               <h1 className="text-xl md:text-2xl lg:text-3xl font-bold leading-tight tracking-tight">
                 Delta State Government
               </h1>
-              <p className="text-xs md:text-sm lg:text-base opacity-90 flex items-center gap-2">
-                <GraduationCap className="h-3 w-3 md:h-4 md:w-4" />
+              <p className="text-md md:text-xl lg:text-2xl opacity-90 flex items-center gap-2">
+                
                 Ministry of Primary Education Portal
               </p>
             </div>
