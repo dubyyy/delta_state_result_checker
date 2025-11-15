@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,36 +23,90 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 
-const mockSchools = [
-  { id: 1, name: "Government Secondary School", code: "AN001", lga: "Aba North", status: "Open" },
-  { id: 2, name: "Community High School", code: "AS002", lga: "Aba South", status: "Open" },
-  { id: 3, name: "Central Secondary School", code: "UN003", lga: "Umuahia North", status: "Open" },
-  { id: 4, name: "Model Secondary School", code: "IN004", lga: "Isiala Ngwa North", status: "Closed" },
-  { id: 5, name: "Township High School", code: "BE005", lga: "Bende", status: "Open" },
-];
+interface School {
+  id: string;
+  name: string;
+  code: string;
+  lga: string;
+  studentCount: number;
+  status: string;
+  createdAt: string;
+}
 
 export default function Schools() {
-  const [schools, setSchools] = useState(mockSchools);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newSchool, setNewSchool] = useState({ name: "", code: "", lga: "" });
 
-  const handleAddSchool = () => {
+  useEffect(() => {
+    fetchSchools();
+  }, []);
+
+  async function fetchSchools() {
+    try {
+      const response = await fetch("/api/admin/schools");
+      if (response.ok) {
+        const data = await response.json();
+        setSchools(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch schools:", error);
+      toast.error("Failed to load schools");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleAddSchool = async () => {
     if (!newSchool.name || !newSchool.code || !newSchool.lga) {
       toast.error("Please fill all fields");
       return;
     }
-    setSchools([...schools, { id: schools.length + 1, ...newSchool, status: "Open" }]);
-    setNewSchool({ name: "", code: "", lga: "" });
-    setIsAddDialogOpen(false);
-    toast.success("School added successfully");
+
+    try {
+      const response = await fetch("/api/admin/schools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSchool),
+      });
+
+      if (response.ok) {
+        const createdSchool = await response.json();
+        setSchools([createdSchool, ...schools]);
+        setNewSchool({ name: "", code: "", lga: "" });
+        setIsAddDialogOpen(false);
+        toast.success("School added successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to add school");
+      }
+    } catch (error) {
+      console.error("Failed to add school:", error);
+      toast.error("Failed to add school");
+    }
   };
 
-  const handleDeleteSchool = (id: number) => {
-    setSchools(schools.filter(school => school.id !== id));
-    toast.success("School deleted successfully");
+  const handleDeleteSchool = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/schools?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setSchools(schools.filter(school => school.id !== id));
+        toast.success("School deleted successfully");
+      } else {
+        toast.error("Failed to delete school");
+      }
+    } catch (error) {
+      console.error("Failed to delete school:", error);
+      toast.error("Failed to delete school");
+    }
   };
 
-  const handleToggleRegistration = (id: number) => {
+  const handleToggleRegistration = (id: string) => {
+    // This would be implemented with a proper API endpoint
     setSchools(schools.map(school => 
       school.id === id 
         ? { ...school, status: school.status === "Open" ? "Closed" : "Open" }
@@ -60,6 +114,16 @@ export default function Schools() {
     ));
     toast.success("Registration status updated");
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading schools...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

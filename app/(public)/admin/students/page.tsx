@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,32 +20,71 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
-const mockStudents = [
-  { id: 1, name: "Chidinma Okafor", lga: "Aba North", schoolCode: "AN001", examNumber: "2024001", date: "2024-01-15" },
-  { id: 2, name: "Emeka Nwosu", lga: "Aba South", schoolCode: "AS002", examNumber: "2024002", date: "2024-01-16" },
-  { id: 3, name: "Ngozi Eze", lga: "Umuahia North", schoolCode: "UN003", examNumber: "2024003", date: "2024-01-17" },
-  { id: 4, name: "Chukwuma Obi", lga: "Aba North", schoolCode: "AN001", examNumber: "2024004", date: "2024-01-18" },
-  { id: 5, name: "Adaeze Okoro", lga: "Isiala Ngwa North", schoolCode: "IN004", examNumber: "2024005", date: "2024-01-19" },
-  { id: 6, name: "Oluchi Nnamdi", lga: "Bende", schoolCode: "BE005", examNumber: "2024006", date: "2024-01-20" },
-];
+interface Student {
+  id: string;
+  name: string;
+  lga: string;
+  schoolCode: string;
+  schoolName: string;
+  examNumber: string;
+  date: string;
+  gender: string;
+  schoolType: string;
+}
 
 export default function Students() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLGA, setSelectedLGA] = useState("all");
   const [selectedSchool, setSelectedSchool] = useState("all");
+  const [uniqueLGAs, setUniqueLGAs] = useState<string[]>([]);
+  const [uniqueSchools, setUniqueSchools] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [searchTerm, selectedLGA, selectedSchool]);
+
+  async function fetchStudents() {
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append("search", searchTerm);
+      if (selectedLGA && selectedLGA !== "all") params.append("lga", selectedLGA);
+      if (selectedSchool && selectedSchool !== "all") params.append("schoolCode", selectedSchool);
+
+      const response = await fetch(`/api/admin/students?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStudents(data);
+
+        // Extract unique LGAs and schools for filters
+        const lgas = Array.from(new Set(data.map((s: Student) => s.lga)));
+        const schools = Array.from(new Set(data.map((s: Student) => s.schoolCode)));
+        setUniqueLGAs(lgas as string[]);
+        setUniqueSchools(schools as string[]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch students:", error);
+      toast.error("Failed to load students");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleResetPassword = (lga: string, schoolCode?: string) => {
     const target = schoolCode ? `School ${schoolCode}` : `LGA ${lga}`;
     toast.success(`Password reset initiated for ${target}`);
   };
 
-  const filteredStudents = mockStudents.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.examNumber.includes(searchTerm);
-    const matchesLGA = selectedLGA === "all" || student.lga === selectedLGA;
-    const matchesSchool = selectedSchool === "all" || student.schoolCode === selectedSchool;
-    return matchesSearch && matchesLGA && matchesSchool;
-  });
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading students...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -78,11 +117,9 @@ export default function Students() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All LGAs</SelectItem>
-                <SelectItem value="Aba North">Aba North</SelectItem>
-                <SelectItem value="Aba South">Aba South</SelectItem>
-                <SelectItem value="Umuahia North">Umuahia North</SelectItem>
-                <SelectItem value="Bende">Bende</SelectItem>
-                <SelectItem value="Isiala Ngwa North">Isiala Ngwa North</SelectItem>
+                {uniqueLGAs.map(lga => (
+                  <SelectItem key={lga} value={lga}>{lga}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -92,11 +129,9 @@ export default function Students() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Schools</SelectItem>
-                <SelectItem value="AN001">AN001</SelectItem>
-                <SelectItem value="AS002">AS002</SelectItem>
-                <SelectItem value="UN003">UN003</SelectItem>
-                <SelectItem value="IN004">IN004</SelectItem>
-                <SelectItem value="BE005">BE005</SelectItem>
+                {uniqueSchools.map(code => (
+                  <SelectItem key={code} value={code}>{code}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -134,33 +169,37 @@ export default function Students() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Registered Students ({filteredStudents.length})</CardTitle>
+          <CardTitle>Registered Students ({students.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>LGA</TableHead>
-                  <TableHead>School Code</TableHead>
-                  <TableHead>Exam Number</TableHead>
-                  <TableHead>Registration Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{student.name}</TableCell>
-                    <TableCell>{student.lga}</TableCell>
-                    <TableCell>{student.schoolCode}</TableCell>
-                    <TableCell>{student.examNumber}</TableCell>
-                    <TableCell>{student.date}</TableCell>
+          {students.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">No students found</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>LGA</TableHead>
+                    <TableHead>School Code</TableHead>
+                    <TableHead>Exam Number</TableHead>
+                    <TableHead>Registration Date</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student) => (
+                    <TableRow key={student.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{student.name}</TableCell>
+                      <TableCell>{student.lga}</TableCell>
+                      <TableCell>{student.schoolCode}</TableCell>
+                      <TableCell>{student.examNumber}</TableCell>
+                      <TableCell>{student.date}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
