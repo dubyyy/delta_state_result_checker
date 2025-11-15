@@ -1,48 +1,28 @@
-"use client"
+import { ReactNode } from "react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 
-import { SessionProvider } from "next-auth/react";
-import { signOut, useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-
-export default function AdminLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <SessionProvider>
-      <div className="min-h-screen flex flex-col">
-        <AdminHeader />
-        <main className="flex-1">
-          {children}
-        </main>
-      </div>
-    </SessionProvider>
-  );
+interface DashboardLayoutProps {
+  children: ReactNode;
 }
 
-function AdminHeader() {
-  const { data: session } = useSession();
-  
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <h1 className="text-xl font-bold">Admin Panel</h1>
-        {session && (
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              {session.user?.email}
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => signOut({ callbackUrl: "/" })}
-            >
-              Sign Out
-            </Button>
-          </div>
-        )}
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          <header className="h-16 border-b border-border bg-card flex items-center px-6 sticky top-0 z-10">
+            <SidebarTrigger className="mr-4" />
+            <h1 className="text-xl font-semibold text-foreground">
+              Student Registration System
+            </h1>
+          </header>
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </header>
+    </SidebarProvider>
   );
 }

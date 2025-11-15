@@ -1,5 +1,3 @@
-"use client";
-
 import { StatsCard } from "@/components/StatsCard";
 import { Users, School, FileCheck, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
