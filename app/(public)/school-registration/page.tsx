@@ -82,6 +82,19 @@ const SchoolRegistration = () => {
   const [religiousType, setReligiousType] = useState<string>("");
   const [lastname, setLastname] = useState<string>("");
   const [firstname, setFirstname] = useState<string>("");
+  const [othername, setOthername] = useState<string>("");
+  const [englishTerm1, setEnglishTerm1] = useState<string>("");
+  const [englishTerm2, setEnglishTerm2] = useState<string>("");
+  const [englishTerm3, setEnglishTerm3] = useState<string>("");
+  const [arithmeticTerm1, setArithmeticTerm1] = useState<string>("");
+  const [arithmeticTerm2, setArithmeticTerm2] = useState<string>("");
+  const [arithmeticTerm3, setArithmeticTerm3] = useState<string>("");
+  const [generalTerm1, setGeneralTerm1] = useState<string>("");
+  const [generalTerm2, setGeneralTerm2] = useState<string>("");
+  const [generalTerm3, setGeneralTerm3] = useState<string>("");
+  const [religiousTerm1, setReligiousTerm1] = useState<string>("");
+  const [religiousTerm2, setReligiousTerm2] = useState<string>("");
+  const [religiousTerm3, setReligiousTerm3] = useState<string>("");
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Registration | null>(null);
@@ -470,10 +483,16 @@ const SchoolRegistration = () => {
                   // Ensure all required fields are filled before allowing submission
                   const isFormComplete =
                     lastname.trim() !== "" &&
+                    othername.trim() !== "" &&
                     firstname.trim() !== "" &&
                     gender !== "" &&
                     schoolType !== "" &&
-                    religiousType !== "";
+                    religiousType !== "" &&
+                    selectedImage !== null &&
+                    englishTerm1 !== "" && englishTerm2 !== "" && englishTerm3 !== "" &&
+                    arithmeticTerm1 !== "" && arithmeticTerm2 !== "" && arithmeticTerm3 !== "" &&
+                    generalTerm1 !== "" && generalTerm2 !== "" && generalTerm3 !== "" &&
+                    religiousTerm1 !== "" && religiousTerm2 !== "" && religiousTerm3 !== "";
 
                   if (!isFormComplete) {
                     return;
@@ -523,6 +542,19 @@ const SchoolRegistration = () => {
                   setReligiousType("");
                   setLastname("");
                   setFirstname("");
+                  setOthername("");
+                  setEnglishTerm1("");
+                  setEnglishTerm2("");
+                  setEnglishTerm3("");
+                  setArithmeticTerm1("");
+                  setArithmeticTerm2("");
+                  setArithmeticTerm3("");
+                  setGeneralTerm1("");
+                  setGeneralTerm2("");
+                  setGeneralTerm3("");
+                  setReligiousTerm1("");
+                  setReligiousTerm2("");
+                  setReligiousTerm3("");
                 }}>
                 <div className="space-y-2">
                   <Label htmlFor="lastname">Lastname/Surname</Label>
@@ -544,6 +576,9 @@ const SchoolRegistration = () => {
                     name="othername"
                     placeholder="Enter other name or middlename"
                     type="text"
+                    required
+                    value={othername}
+                    onChange={(e) => setOthername(e.target.value)}
                   />
                 </div>
 
@@ -596,6 +631,7 @@ const SchoolRegistration = () => {
                         accept="image/*"
                         onChange={handleImageChange}
                         className="cursor-pointer"
+                        required
                       />
                       <Upload className="h-5 w-5 text-muted-foreground" />
                     </div>
@@ -632,6 +668,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={englishTerm1}
+                          onChange={(e) => setEnglishTerm1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -644,6 +683,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={englishTerm2}
+                          onChange={(e) => setEnglishTerm2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -656,6 +698,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={englishTerm3}
+                          onChange={(e) => setEnglishTerm3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -675,6 +720,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={arithmeticTerm1}
+                          onChange={(e) => setArithmeticTerm1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -687,6 +735,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={arithmeticTerm2}
+                          onChange={(e) => setArithmeticTerm2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -699,6 +750,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={arithmeticTerm3}
+                          onChange={(e) => setArithmeticTerm3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -718,6 +772,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={generalTerm1}
+                          onChange={(e) => setGeneralTerm1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -730,6 +787,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={generalTerm2}
+                          onChange={(e) => setGeneralTerm2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -742,6 +802,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={generalTerm3}
+                          onChange={(e) => setGeneralTerm3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -772,6 +835,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={religiousTerm1}
+                          onChange={(e) => setReligiousTerm1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -784,6 +850,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={religiousTerm2}
+                          onChange={(e) => setReligiousTerm2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -796,6 +865,9 @@ const SchoolRegistration = () => {
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
+                          required
+                          value={religiousTerm3}
+                          onChange={(e) => setReligiousTerm3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -807,10 +879,16 @@ const SchoolRegistration = () => {
                   className="w-full"
                   disabled={
                     lastname.trim() === "" ||
+                    othername.trim() === "" ||
                     firstname.trim() === "" ||
                     gender === "" ||
                     schoolType === "" ||
-                    religiousType === ""
+                    religiousType === "" ||
+                    selectedImage === null ||
+                    englishTerm1 === "" || englishTerm2 === "" || englishTerm3 === "" ||
+                    arithmeticTerm1 === "" || arithmeticTerm2 === "" || arithmeticTerm3 === "" ||
+                    generalTerm1 === "" || generalTerm2 === "" || generalTerm3 === "" ||
+                    religiousTerm1 === "" || religiousTerm2 === "" || religiousTerm3 === ""
                   }
                 >
                   Submit Registration
