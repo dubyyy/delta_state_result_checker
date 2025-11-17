@@ -9,7 +9,8 @@ import {
   Users, 
   School, 
   Settings, 
-  LogOut 
+  LogOut,
+  KeyRound
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -28,6 +29,11 @@ const navItems = [
     title: "Schools",
     href: "/admin/schools",
     icon: School,
+  },
+  {
+    title: "Reset Password",
+    href: "/admin/reset-password",
+    icon: KeyRound,
   },
   {
     title: "Settings",

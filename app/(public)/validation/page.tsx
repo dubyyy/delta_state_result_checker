@@ -91,6 +91,7 @@ const Validation = () => {
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [editError, setEditError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [printType, setPrintType] = useState<string>("name");
 
   // Check for existing JWT token on component mount
   useEffect(() => {
@@ -233,91 +234,53 @@ const Validation = () => {
     }
   };
 
-  const handlePrint = (student: StudentRegistration) => {
-    // Create a printable view of the student data
-    const printWindow = window.open('', '', 'height=600,width=800');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Student Registration - ${student.studentNumber}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-              .info-row { margin: 10px 0; display: flex; }
-              .label { font-weight: bold; width: 200px; }
-              .value { flex: 1; }
-              .section { margin-top: 20px; }
-              .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #555; }
-              table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              @media print { button { display: none; } }
-            </style>
-          </head>
-          <body>
-            <h1>Student Registration Details</h1>
-            <div class="section">
-              <div class="section-title">Personal Information</div>
-              <div class="info-row"><span class="label">Student Number:</span><span class="value">${student.studentNumber}</span></div>
-              <div class="info-row"><span class="label">Full Name:</span><span class="value">${student.lastname} ${student.othername} ${student.firstname}</span></div>
-              <div class="info-row"><span class="label">Gender:</span><span class="value">${student.gender}</span></div>
-              <div class="info-row"><span class="label">School Type:</span><span class="value">${student.schoolType}</span></div>
-              <div class="info-row"><span class="label">Religious Type:</span><span class="value">${student.religiousType || 'N/A'}</span></div>
-              <div class="info-row"><span class="label">Registration Date:</span><span class="value">${new Date(student.createdAt).toLocaleDateString()}</span></div>
-            </div>
-            <div class="section">
-              <div class="section-title">Academic Scores</div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Subject</th>
-                    <th>Term 1</th>
-                    <th>Term 2</th>
-                    <th>Term 3</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>English</td>
-                    <td>${student.englishTerm1}</td>
-                    <td>${student.englishTerm2}</td>
-                    <td>${student.englishTerm3}</td>
-                  </tr>
-                  <tr>
-                    <td>Arithmetic</td>
-                    <td>${student.arithmeticTerm1}</td>
-                    <td>${student.arithmeticTerm2}</td>
-                    <td>${student.arithmeticTerm3}</td>
-                  </tr>
-                  <tr>
-                    <td>General Knowledge</td>
-                    <td>${student.generalTerm1}</td>
-                    <td>${student.generalTerm2}</td>
-                    <td>${student.generalTerm3}</td>
-                  </tr>
-                  <tr>
-                    <td>Religious Studies</td>
-                    <td>${student.religiousTerm1}</td>
-                    <td>${student.religiousTerm2}</td>
-                    <td>${student.religiousTerm3}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div style="margin-top: 30px; text-align: center;">
-              <button onclick="window.print()" style="padding: 10px 20px; background-color: #333; color: white; border: none; cursor: pointer; border-radius: 5px;">Print</button>
-              <button onclick="window.close()" style="padding: 10px 20px; background-color: #666; color: white; border: none; cursor: pointer; border-radius: 5px; margin-left: 10px;">Close</button>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-    }
+  // Helper function to draw standardized header for all PDFs
+  const drawStandardHeader = (
+    page: any,
+    boldFont: any,
+    regularFont: any,
+    pageWidth: number,
+    pageHeight: number,
+    margin: number
+  ) => {
+    // Get LGA name from code
+    const lgaName = LGAS.find(lga => lga.code === lgaCode)?.name || 'ANIOCHA-NORTH';
+    
+    // Center text helper
+    const centerText = (text: string, size: number, y: number, font: any) => {
+      const textWidth = font.widthOfTextAtSize(text, size);
+      page.drawText(text, {
+        x: (pageWidth - textWidth) / 2,
+        y,
+        size,
+        font,
+        color: rgb(0, 0, 0),
+      });
+    };
+
+    // Starting Y position for header
+    let currentY = pageHeight - margin;
+
+    // Line 1: Ministry header
+    centerText('MINISTRY OF EDUCATION ASABA DELTA STATE', 14, currentY, boldFont);
+    currentY -= 25;
+
+    // Line 2: LGA and School information
+    const line2 = `LGA CODE: ${lgaCode} :: ${lgaName} SCHOOL CODE: ${schoolCode} : ${authenticatedSchool.toUpperCase()}`;
+    centerText(line2, 10, currentY, boldFont);
+    currentY -= 25;
+
+    // Line 3: Examination title
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const examTitle = `${currentYear}/${nextYear} COGNITIVE/PLACEMENT EXAMINATION FOR PRIMARY SIX PUPILS`;
+    centerText(examTitle, 11, currentY, boldFont);
+    
+    // Return the Y position after the header for content to continue
+    return currentY - 30;
   };
 
-  const handlePrintAll = async () => {
+  const handlePrintName = async () => {
     try {
       // Create a new PDF document
       const pdfDoc = await PDFDocument.create();
@@ -339,14 +302,16 @@ const Validation = () => {
       // Table settings
       const rowHeight = 20;
       const headerHeight = 25;
-      let currentY = pageHeight - margin;
       let page = pdfDoc.addPage([pageWidth, pageHeight]);
+      
+      // Draw standardized header
+      let currentY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
 
       // Function to check if new page is needed
       const checkNewPage = () => {
         if (currentY < margin + rowHeight) {
           page = pdfDoc.addPage([pageWidth, pageHeight]);
-          currentY = pageHeight - margin;
+          currentY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
           drawTableHeader();
         }
       };
@@ -511,7 +476,7 @@ const Validation = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `student-validation-${authenticatedSchool.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `student-names-${authenticatedSchool.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -519,6 +484,439 @@ const Validation = () => {
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  const handlePrintCA = async () => {
+    try {
+      // Create a new PDF document
+      const pdfDoc = await PDFDocument.create();
+      const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+
+      // Page dimensions (Landscape)
+      const pageWidth = 842; // A4 height becomes width in landscape
+      const pageHeight = 595; // A4 width becomes height in landscape
+      const margin = 30;
+      const tableWidth = pageWidth - 2 * margin;
+      
+      // Column widths - 19 columns total
+      const colLastName = 60;
+      const colMiddleName = 60;
+      const colFirstName = 60;
+      const colLGA = 45;
+      const colSchool = 45;
+      const colExamNo = 55;
+      const colSex = 30;
+      const colTerm = 30; // Width for each term score column (12 columns total)
+      
+      // Table settings
+      const rowHeight = 20;
+      const headerHeight = 25;
+      let page = pdfDoc.addPage([pageWidth, pageHeight]);
+      
+      // Draw standardized header
+      let currentY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
+
+      // Function to check if new page is needed
+      const checkNewPage = () => {
+        if (currentY < margin + rowHeight) {
+          page = pdfDoc.addPage([pageWidth, pageHeight]);
+          currentY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
+          drawTableHeader();
+        }
+      };
+
+      // Function to draw table header
+      const drawTableHeader = () => {
+        // Header background
+        page.drawRectangle({
+          x: margin,
+          y: currentY - headerHeight,
+          width: tableWidth,
+          height: headerHeight,
+          color: rgb(0.95, 0.95, 0.95),
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
+        // Draw column borders
+        let xPos = margin;
+        const columns = [
+          colLastName, colMiddleName, colFirstName, colLGA, colSchool, colExamNo, colSex,
+          colTerm, colTerm, colTerm, // Arith 1-3
+          colTerm, colTerm, colTerm, // Eng 1-3
+          colTerm, colTerm, colTerm, // GP 1-3
+          colTerm, colTerm, colTerm  // RGS 1-3
+        ];
+        
+        columns.forEach(colWidth => {
+          xPos += colWidth;
+          page.drawLine({
+            start: { x: xPos, y: currentY },
+            end: { x: xPos, y: currentY - headerHeight },
+            thickness: 1,
+          });
+        });
+
+        // Header text
+        let headerX = margin + 5;
+        const fontSize = 6.5;
+        const headers = [
+          'LAST NAME', 'MIDDLE', 'FIRST', 'LGA', 'SCH', 'EXAM NO', 'SEX',
+          'ARIT1 ', 'ARIT2 ', 'ARIT3 ', 'ENG1 ', 'ENG2 ', 'ENG3 ', 'GP1 ', 'GP2 ', 'GP3 ', 'RGS1 ', 'RGS2 ', 'RGS3 '
+        ];
+        const columnWidths = [
+          colLastName, colMiddleName, colFirstName, colLGA, colSchool, colExamNo, colSex,
+          colTerm, colTerm, colTerm, colTerm, colTerm, colTerm,
+          colTerm, colTerm, colTerm, colTerm, colTerm, colTerm
+        ];
+        
+        headers.forEach((header, i) => {
+          const textWidth = timesRomanBoldFont.widthOfTextAtSize(header, fontSize);
+          const xOffset = (columnWidths[i] - textWidth) / 2;
+          page.drawText(header, {
+            x: headerX + xOffset,
+            y: currentY - 17,
+            size: fontSize,
+            font: timesRomanBoldFont,
+          });
+          headerX += columnWidths[i];
+        });
+
+        currentY -= headerHeight;
+      };
+
+      // Draw initial header
+      drawTableHeader();
+
+      // Draw table rows
+      registrations.forEach((student, index) => {
+        checkNewPage();
+
+        // Row background (alternating)
+        if (index % 2 === 0) {
+          page.drawRectangle({
+            x: margin,
+            y: currentY - rowHeight,
+            width: tableWidth,
+            height: rowHeight,
+            color: rgb(0.98, 0.98, 0.98),
+          });
+        }
+
+        // Row border
+        page.drawRectangle({
+          x: margin,
+          y: currentY - rowHeight,
+          width: tableWidth,
+          height: rowHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
+        // Draw column borders
+        let xPos = margin;
+        const rowColumns = [
+          colLastName, colMiddleName, colFirstName, colLGA, colSchool, colExamNo, colSex,
+          colTerm, colTerm, colTerm, // Arith 1-3
+          colTerm, colTerm, colTerm, // Eng 1-3
+          colTerm, colTerm, colTerm, // GP 1-3
+          colTerm, colTerm, colTerm  // RGS 1-3
+        ];
+        
+        rowColumns.forEach(colWidth => {
+          xPos += colWidth;
+          page.drawLine({
+            start: { x: xPos, y: currentY },
+            end: { x: xPos, y: currentY - rowHeight },
+            thickness: 1,
+          });
+        });
+        
+        // Helper function to truncate text
+        const truncateText = (text: string, maxWidth: number, fontSize: number) => {
+          let displayText = text;
+          let textWidth = timesRomanFont.widthOfTextAtSize(displayText, fontSize);
+          
+          while (textWidth > maxWidth && displayText.length > 0) {
+            displayText = displayText.slice(0, -1);
+            textWidth = timesRomanFont.widthOfTextAtSize(displayText + '...', fontSize);
+          }
+          
+          if (displayText !== text && displayText.length > 0) {
+            displayText += '...';
+          }
+          return displayText;
+        };
+        
+        // Helper function to center text in column
+        const drawCenteredText = (text: string, x: number, colWidth: number, y: number, size: number) => {
+          const textWidth = timesRomanFont.widthOfTextAtSize(text, size);
+          const xOffset = (colWidth - textWidth) / 2;
+          page.drawText(text, {
+            x: x + xOffset,
+            y,
+            size,
+            font: timesRomanFont,
+          });
+        };
+        
+        // Prepare row data
+        const rowData = [
+          truncateText(student.lastname.toUpperCase(), colLastName - 4, 7),
+          truncateText(student.othername.toUpperCase(), colMiddleName - 4, 7),
+          truncateText(student.firstname.toUpperCase(), colFirstName - 4, 7),
+          lgaCode,
+          schoolCode,
+          student.studentNumber,
+          student.gender.charAt(0).toUpperCase(),
+          student.arithmeticTerm1,
+          student.arithmeticTerm2,
+          student.arithmeticTerm3,
+          student.englishTerm1,
+          student.englishTerm2,
+          student.englishTerm3,
+          student.generalTerm1,
+          student.generalTerm2,
+          student.generalTerm3,
+          student.religiousTerm1,
+          student.religiousTerm2,
+          student.religiousTerm3
+        ];
+        
+        // Draw row data
+        let dataX = margin;
+        rowData.forEach((data, i) => {
+          drawCenteredText(data, dataX, rowColumns[i], currentY - 14, 7);
+          dataX += rowColumns[i];
+        });
+
+        currentY -= rowHeight;
+      });
+
+      // Save the PDF
+      const pdfBytes = await pdfDoc.save();
+      
+      // Create a blob and download
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `student-ca-${authenticatedSchool.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  const handlePrintPhotoAlbum = async () => {
+    try {
+      // Create a new PDF document
+      const pdfDoc = await PDFDocument.create();
+      const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+
+      // Page dimensions
+      const pageWidth = 595; // A4 width in points
+      const pageHeight = 842; // A4 height in points
+      const margin = 40;
+      const contentWidth = pageWidth - 2 * margin;
+      
+      // Grid settings - 3 columns x 4 rows per page
+      const cols = 3;
+      const rows = 4;
+      const photosPerPage = cols * rows;
+      const photoWidth = 120;
+      const photoHeight = 140;
+      const spacing = 20;
+      const nameHeight = 30;
+      const cellWidth = contentWidth / cols;
+      
+      let page = pdfDoc.addPage([pageWidth, pageHeight]);
+      let photoCount = 0;
+      let pageNumber = 1;
+      
+      // Draw standardized header and adjust cell height based on remaining space
+      let headerEndY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
+      const availableHeight = headerEndY - margin;
+      const cellHeight = availableHeight / rows;
+
+      // Add page title function for subsequent pages
+      const addPageWithHeader = () => {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        pageNumber++;
+        headerEndY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
+      };
+
+      // Process each student
+      for (let i = 0; i < registrations.length; i++) {
+        const student = registrations[i];
+        
+        // Calculate position in grid
+        const posInPage = photoCount % photosPerPage;
+        const col = posInPage % cols;
+        const row = Math.floor(posInPage / cols);
+        
+        // Check if we need a new page
+        if (photoCount > 0 && posInPage === 0) {
+          addPageWithHeader();
+        }
+        
+        // Calculate cell position
+        const cellX = margin + col * cellWidth;
+        const cellY = headerEndY - (row + 1) * cellHeight;
+        
+        // Center photo in cell
+        const photoX = cellX + (cellWidth - photoWidth) / 2;
+        const photoY = cellY + (cellHeight - photoHeight - nameHeight) / 2 + nameHeight;
+        
+        // Draw photo border/placeholder
+        page.drawRectangle({
+          x: photoX,
+          y: photoY,
+          width: photoWidth,
+          height: photoHeight,
+          borderColor: rgb(0.7, 0.7, 0.7),
+          borderWidth: 1,
+        });
+        
+        // Embed and draw the passport photo if available
+        if (student.passport) {
+          try {
+            // Fetch the image
+            const imageBytes = await fetch(student.passport).then(res => res.arrayBuffer());
+            
+            let image;
+            // Determine image type and embed accordingly
+            if (student.passport.toLowerCase().includes('.png') || student.passport.startsWith('data:image/png')) {
+              image = await pdfDoc.embedPng(imageBytes);
+            } else {
+              image = await pdfDoc.embedJpg(imageBytes);
+            }
+            
+            // Calculate dimensions to fit within the box while maintaining aspect ratio
+            const imgAspectRatio = image.width / image.height;
+            const boxAspectRatio = photoWidth / photoHeight;
+            
+            let drawWidth = photoWidth;
+            let drawHeight = photoHeight;
+            let drawX = photoX;
+            let drawY = photoY;
+            
+            if (imgAspectRatio > boxAspectRatio) {
+              // Image is wider than box
+              drawHeight = photoWidth / imgAspectRatio;
+              drawY = photoY + (photoHeight - drawHeight) / 2;
+            } else {
+              // Image is taller than box
+              drawWidth = photoHeight * imgAspectRatio;
+              drawX = photoX + (photoWidth - drawWidth) / 2;
+            }
+            
+            page.drawImage(image, {
+              x: drawX,
+              y: drawY,
+              width: drawWidth,
+              height: drawHeight,
+            });
+          } catch (error) {
+            console.error(`Error loading image for student ${student.studentNumber}:`, error);
+            // Draw "No Photo" text if image fails to load
+            page.drawText('No Photo', {
+              x: photoX + photoWidth / 2 - 25,
+              y: photoY + photoHeight / 2,
+              size: 10,
+              font: timesRomanFont,
+              color: rgb(0.5, 0.5, 0.5),
+            });
+          }
+        } else {
+          // Draw "No Photo" text
+          page.drawText('No Photo', {
+            x: photoX + photoWidth / 2 - 25,
+            y: photoY + photoHeight / 2,
+            size: 10,
+            font: timesRomanFont,
+            color: rgb(0.5, 0.5, 0.5),
+          });
+        }
+        
+        // Draw student information below photo
+        const fullName = `${student.lastname.toUpperCase()} ${student.firstname.toUpperCase()}`;
+        const nameY = photoY - 15;
+        
+        // Truncate name if too long
+        const maxNameWidth = photoWidth;
+        let nameToDisplay = fullName;
+        let nameWidth = timesRomanBoldFont.widthOfTextAtSize(nameToDisplay, 9);
+        
+        while (nameWidth > maxNameWidth && nameToDisplay.length > 0) {
+          nameToDisplay = nameToDisplay.slice(0, -1);
+          nameWidth = timesRomanBoldFont.widthOfTextAtSize(nameToDisplay + '...', 9);
+        }
+        
+        if (nameToDisplay !== fullName) {
+          nameToDisplay += '...';
+        }
+        
+        // Center the name text
+        const nameTextWidth = timesRomanBoldFont.widthOfTextAtSize(nameToDisplay, 9);
+        const nameX = photoX + (photoWidth - nameTextWidth) / 2;
+        
+        page.drawText(nameToDisplay, {
+          x: nameX,
+          y: nameY,
+          size: 9,
+          font: timesRomanBoldFont,
+        });
+        
+        // Draw exam number
+        const examNoText = student.studentNumber;
+        const examNoWidth = timesRomanFont.widthOfTextAtSize(examNoText, 8);
+        const examNoX = photoX + (photoWidth - examNoWidth) / 2;
+        
+        page.drawText(examNoText, {
+          x: examNoX,
+          y: nameY - 12,
+          size: 8,
+          font: timesRomanFont,
+          color: rgb(0.4, 0.4, 0.4),
+        });
+        
+        photoCount++;
+      }
+
+      // Save the PDF
+      const pdfBytes = await pdfDoc.save();
+      
+      // Create a blob and download
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `student-photo-album-${authenticatedSchool.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating photo album PDF:', error);
+      alert('Failed to generate photo album PDF. Please try again.');
+    }
+  };
+
+  const handlePrint = () => {
+    if (printType === "name") {
+      handlePrintName();
+    } else if (printType === "ca") {
+      handlePrintCA();
+    } else if (printType === "photo") {
+      handlePrintPhotoAlbum();
     }
   };
 
@@ -757,13 +1155,23 @@ const Validation = () => {
                               />
                             </div>
                             <div className="flex gap-2">
+                              <Select value={printType} onValueChange={setPrintType}>
+                                <SelectTrigger className="w-[280px]">
+                                  <SelectValue placeholder="Select print type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="name">Print Student Names List</SelectItem>
+                                  <SelectItem value="ca">Print Continuous Assessment Scores</SelectItem>
+                                  <SelectItem value="photo">Print Student Photos</SelectItem>
+                                </SelectContent>
+                              </Select>
                               <Button 
-                                onClick={handlePrintAll}
+                                onClick={handlePrint}
                                 variant="outline"
                                 className="gap-2 whitespace-nowrap"
                               >
                                 <Printer className="h-4 w-4" />
-                                Print All
+                                Print
                               </Button>
                             </div>
                           </div>
@@ -787,6 +1195,7 @@ const Validation = () => {
                               <Table>
                                 <TableHeader>
                                   <TableRow>
+                                    <TableHead>Passport</TableHead>
                                     <TableHead>Student Number</TableHead>
                                     <TableHead>Full Name</TableHead>
                                     <TableHead>Gender</TableHead>
@@ -802,6 +1211,19 @@ const Validation = () => {
                                 <TableBody>
                                   {filteredRegistrations.map((student) => (
                             <TableRow key={student.id}>
+                              <TableCell>
+                                {student.passport ? (
+                                  <img 
+                                    src={student.passport} 
+                                    alt={`${student.firstname} ${student.lastname}`}
+                                    className="w-12 h-12 object-cover rounded-md border border-gray-300"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center text-xs text-gray-500">
+                                    No Photo
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell className="font-medium">{student.studentNumber}</TableCell>
                               <TableCell>
                                 {student.lastname} {student.othername} {student.firstname}
@@ -833,26 +1255,15 @@ const Validation = () => {
                                 {new Date(student.createdAt).toLocaleDateString()}
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEdit(student)}
-                                    className="h-8 w-8 p-0"
-                                    title="Edit Student"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handlePrint(student)}
-                                    className="h-8 w-8 p-0"
-                                    title="Print Student Details"
-                                  >
-                                    <Printer className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(student)}
+                                  className="h-8 w-8 p-0"
+                                  title="Edit Student"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -890,6 +1301,20 @@ const Validation = () => {
 
           {editFormData && (
             <div className="space-y-6">
+              {/* Passport Photo Section */}
+              {editFormData.passport && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Student Passport</h3>
+                  <div className="flex justify-center">
+                    <img 
+                      src={editFormData.passport} 
+                      alt={`${editFormData.firstname} ${editFormData.lastname}`}
+                      className="w-32 h-32 object-cover rounded-lg border-2 border-gray-300 shadow-sm"
+                    />
+                  </div>
+                </div>
+              )}
+              
               {/* Personal Information Section */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Personal Information</h3>

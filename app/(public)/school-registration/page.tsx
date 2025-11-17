@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, Edit2, Save, X, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, Edit2, Save, X, Trash2, CheckCircle2, AlertCircle, Printer } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import schoolsData from '@/data.json';
@@ -80,6 +80,8 @@ const SchoolRegistration = () => {
   const [gender, setGender] = useState<string>("");
   const [schoolType, setSchoolType] = useState<string>("");
   const [religiousType, setReligiousType] = useState<string>("");
+  const [lastname, setLastname] = useState<string>("");
+  const [firstname, setFirstname] = useState<string>("");
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Registration | null>(null);
@@ -111,6 +113,127 @@ const SchoolRegistration = () => {
       }
     }
   }, []);
+
+  // Load cached registrations and counter for the authenticated school
+  useEffect(() => {
+    if (!isLoggedIn || !lgaCode || !schoolCode) return;
+    try {
+      const regsKey = `registrations_${lgaCode}_${schoolCode}`;
+      const counterKey = `studentCounter_${lgaCode}_${schoolCode}`;
+      const cachedRegs = localStorage.getItem(regsKey);
+      const cachedCounter = localStorage.getItem(counterKey);
+      if (cachedRegs && registrations.length === 0) {
+        const parsed: Registration[] = JSON.parse(cachedRegs);
+        setRegistrations(parsed);
+      }
+      if (cachedCounter) {
+        const parsedCounter = parseInt(cachedCounter, 10);
+        if (!Number.isNaN(parsedCounter)) setStudentCounter(parsedCounter);
+      }
+    } catch (e) {
+      console.error('Failed to load cached registrations:', e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, lgaCode, schoolCode]);
+
+  // Persist registrations and counter whenever they change
+  useEffect(() => {
+    if (!isLoggedIn || !lgaCode || !schoolCode) return;
+    try {
+      const regsKey = `registrations_${lgaCode}_${schoolCode}`;
+      const counterKey = `studentCounter_${lgaCode}_${schoolCode}`;
+      localStorage.setItem(regsKey, JSON.stringify(registrations));
+      localStorage.setItem(counterKey, String(studentCounter));
+    } catch (e) {
+      console.error('Failed to persist registrations:', e);
+    }
+  }, [isLoggedIn, lgaCode, schoolCode, registrations, studentCounter]);
+
+  // Print current registrations with standardized header
+  const handlePrint = () => {
+    if (!isLoggedIn || registrations.length === 0) return;
+    const lgaItem = LGAS.find((l) => l.code === lgaCode);
+    const lgaName = (lgaItem?.name || '').toUpperCase();
+    const school = authenticatedSchool.toUpperCase();
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+
+    const headerLine1 = 'MINISTRY OF EDUCATION ASABA DELTA STATE';
+    const headerLine2 = `LGA CODE: ${lgaCode || '1'} :: ${lgaName || 'ANIOCHA-NORTH'} SCHOOL CODE: ${schoolCode || '1'} : ${school}`;
+    const headerLine3 = `${currentYear}/${nextYear} COGNITIVE/PLACEMENT EXAMINATION FOR PRIMARY SIX PUPILS`;
+
+    const rowsHtml = registrations.map((r) => {
+      const name = `${r.firstname} ${r.othername ? r.othername + ' ' : ''}${r.lastname}`.trim();
+      return `
+        <tr>
+          <td>${r.studentNumber}</td>
+          <td>${name}</td>
+          <td style="text-transform: capitalize">${r.gender}</td>
+          <td style="text-transform: capitalize">${r.schoolType}</td>
+          <td>${r.english.term1}/${r.english.term2}/${r.english.term3}</td>
+          <td>${r.arithmetic.term1}/${r.arithmetic.term2}/${r.arithmetic.term3}</td>
+          <td>${r.general.term1}/${r.general.term2}/${r.general.term3}</td>
+          <td>${r.religious.type === 'islam' ? 'Islamic' : 'Christian'} ${r.religious.term1}/${r.religious.term2}/${r.religious.term3}</td>
+        </tr>`;
+    }).join('');
+
+    const html = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Registered Students Print</title>
+          <style>
+            body { font-family: Arial, Helvetica, sans-serif; color: #000; padding: 24px; }
+            .header { text-align: center; margin-bottom: 16px; }
+            .header h1 { margin: 0; font-size: 18px; }
+            .header h2 { margin: 6px 0 0; font-size: 12px; font-weight: 700; }
+            .header h3 { margin: 8px 0 0; font-size: 13px; font-weight: 700; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+            th, td { border: 1px solid #000; padding: 6px 8px; font-size: 12px; text-align: left; }
+            th { background: #f3f3f3; }
+            .meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; }
+            @media print { @page { size: A4; margin: 20mm; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${headerLine1}</h1>
+            <h2>${headerLine2}</h2>
+            <h3>${headerLine3}</h3>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>EXAMINATION NO.</th>
+                <th>NAMES</th>
+                <th>SEX</th>
+                <th>SCHOOL TYPE</th>
+                <th>ENGLISH (T1/T2/T3)</th>
+                <th>ARITHMETIC (T1/T2/T3)</th>
+                <th>GENERAL PAPER (T1/T2/T3)</th>
+                <th>RELIGIOUS (TYPE & T1/T2/T3)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </body>
+      </html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    // Give the browser a tick to finish rendering before printing
+    setTimeout(() => {
+      w.print();
+      w.close();
+    }, 300);
+  };
 
   // Generate student number: xfffmmmm format
   const generateStudentNumber = (lgaCode: string, schoolCode: string, counter: number): string => {
@@ -343,6 +466,18 @@ const SchoolRegistration = () => {
                 <form className="space-y-6" onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
+
+                  // Ensure all required fields are filled before allowing submission
+                  const isFormComplete =
+                    lastname.trim() !== "" &&
+                    firstname.trim() !== "" &&
+                    gender !== "" &&
+                    schoolType !== "" &&
+                    religiousType !== "";
+
+                  if (!isFormComplete) {
+                    return;
+                  }
                   
                   // Generate student number
                   const studentNumber = generateStudentNumber(lgaCode, schoolCode, studentCounter);
@@ -386,6 +521,8 @@ const SchoolRegistration = () => {
                   setGender("");
                   setSchoolType("");
                   setReligiousType("");
+                  setLastname("");
+                  setFirstname("");
                 }}>
                 <div className="space-y-2">
                   <Label htmlFor="lastname">Lastname/Surname</Label>
@@ -395,6 +532,8 @@ const SchoolRegistration = () => {
                     placeholder="Enter lastname"
                     type="text"
                     required
+                    value={lastname}
+                    onChange={(e) => setLastname(e.target.value)}
                   />
                 </div>
 
@@ -416,6 +555,8 @@ const SchoolRegistration = () => {
                     placeholder="Enter first name"
                     type="text"
                     required
+                    value={firstname}
+                    onChange={(e) => setFirstname(e.target.value)}
                   />
                 </div>
 
@@ -661,7 +802,17 @@ const SchoolRegistration = () => {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full">
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={
+                    lastname.trim() === "" ||
+                    firstname.trim() === "" ||
+                    gender === "" ||
+                    schoolType === "" ||
+                    religiousType === ""
+                  }
+                >
                   Submit Registration
                 </Button>
               </form>
@@ -680,6 +831,7 @@ const SchoolRegistration = () => {
                       {registrations.length} student{registrations.length !== 1 ? 's' : ''} registered
                     </CardDescription>
                   </div>
+                  <div className="flex items-center gap-2">
                   <Button
                     onClick={async () => {
                       setIsSaving(true);
@@ -717,6 +869,12 @@ const SchoolRegistration = () => {
                         }, 5000);
                         
                         // Clear registrations after successful save
+                        try {
+                          const regsKey = `registrations_${lgaCode}_${schoolCode}`;
+                          const counterKey = `studentCounter_${lgaCode}_${schoolCode}`;
+                          localStorage.removeItem(regsKey);
+                          localStorage.removeItem(counterKey);
+                        } catch {}
                         setRegistrations([]);
                         setStudentCounter(1);
                       } catch (error) {
@@ -731,6 +889,11 @@ const SchoolRegistration = () => {
                     <Save className="h-4 w-4 mr-2" />
                     {isSaving ? 'Saving...' : 'Save Data'}
                   </Button>
+                  <Button variant="outline" onClick={handlePrint} disabled={!registrations.length}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print
+                  </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

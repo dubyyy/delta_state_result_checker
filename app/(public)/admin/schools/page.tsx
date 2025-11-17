@@ -151,23 +151,23 @@ export default function Schools() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-between sm:items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Schools Management
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Add, edit, and manage schools in the system
           </p>
         </div>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
-              Add New School
+              <span className="sm:inline">Add New School</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -243,31 +243,31 @@ export default function Schools() {
       {/* TABLE SECTION */}
       <Card>
         <CardHeader>
-          <CardTitle>All Schools ({schools.length})</CardTitle>
+          <CardTitle className="text-base sm:text-lg">All Schools ({schools.length})</CardTitle>
         </CardHeader>
 
         <CardContent>
           {/* FIXED TABLE OVERFLOW */}
           <div className="w-full overflow-x-auto rounded-md border">
-            <Table className="min-w-[800px]">
+            <Table className="min-w-[650px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>School Name</TableHead>
-                  <TableHead>School Code</TableHead>
-                  <TableHead>LGA</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-xs sm:text-sm">School Name</TableHead>
+                  <TableHead className="text-xs sm:text-sm">School Code</TableHead>
+                  <TableHead className="text-xs sm:text-sm">LGA</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                  <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {schools.map((school) => (
                   <TableRow key={school.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium text-xs sm:text-sm">
                       {school.name}
                     </TableCell>
-                    <TableCell>{school.code}</TableCell>
-                    <TableCell>{school.lga}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{school.code}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{school.lga}</TableCell>
 
                     <TableCell>
                       <Badge
@@ -280,9 +280,9 @@ export default function Schools() {
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
+                      <div className="flex justify-end gap-1 sm:gap-2">
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 sm:h-9 sm:w-9">
+                          <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
 
                         {/* Toggle Registration */}
@@ -295,8 +295,9 @@ export default function Schools() {
                                   : "default"
                               }
                               size="sm"
+                              className="h-8 w-8 p-0 sm:h-9 sm:w-9"
                             >
-                              <LockKeyhole className="h-4 w-4" />
+                              <LockKeyhole className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -332,8 +333,8 @@ export default function Schools() {
                         {/* Delete */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0 sm:h-9 sm:w-9">
+                              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </AlertDialogTrigger>
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { drawPDFHeader } from '@/lib/pdf-header';
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,6 +49,25 @@ export async function GET(request: NextRequest) {
       page.drawText(txt, { x: (width - w) / 2, y, size, font: f, color: rgb(0, 0, 0) });
     };
 
+    // Parse school and LGA information
+    // Expected format: "ADAMS PRIMARY SCHOOL, ISSELE-UKU" or similar
+    const schoolName = result.school || '';
+    const lgaName = result.lga || '';
+    
+    // Try to extract school code and LGA code from examination number or use defaults
+    // Examination number format might contain codes, otherwise use defaults
+    let lgaCode = '1';
+    let schoolCode = '1';
+    
+    // If we can extract codes from the examination number (e.g., format: LGACODE-SCHOOLCODE-NUMBER)
+    if (result.examinationNumber) {
+      const parts = result.examinationNumber.split('-');
+      if (parts.length >= 2) {
+        lgaCode = parts[0] || '1';
+        schoolCode = parts[1] || '1';
+      }
+    }
+
     // Draw outer border
     const margin = 30;
     page.drawRectangle({
@@ -59,36 +79,50 @@ export async function GET(request: NextRequest) {
       borderWidth: 2,
     });
 
-    // Header (centered)
-    const headerY = height - 90;
-    center("FEDERAL REPUBLIC OF NIGERIA", 16, headerY, bold);
+    // Draw standardized header
+    const contentStartY = drawPDFHeader(page, bold, font, {
+      lgaCode,
+      lgaName: lgaName.toUpperCase().replace(/\s+/g, '-'),
+      schoolCode,
+      schoolName: schoolName.toUpperCase(),
+      year: result.year,
+    });
+
+    // Draw data table header (like in the image)
+    const tableHeaderY = contentStartY - 20;
+    const colExamNo = 50;
+    const colNames = 150;
+    const colSex = 500;
     
-    // Embed and draw Delta State logo (centered)
-    const logoSize = 100;
-    const logoX = (width - logoSize) / 2;
-    const logoY = headerY - 100;
+    // Table header background
+    page.drawRectangle({
+      x: colExamNo - 5,
+      y: tableHeaderY - 5,
+      width: width - 2 * margin - 40,
+      height: 25,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
     
-    try {
-      // Try to load logo from public folder - you'll need to add delta-logo.png to your public folder
-      const logoUrl = `${request.nextUrl.origin}/delta-logo.png`;
-      const logoResponse = await fetch(logoUrl);
-      if (logoResponse.ok) {
-        const logoBytes = await logoResponse.arrayBuffer();
-        const deltaLogo = await pdfDoc.embedPng(logoBytes);
-        page.drawImage(deltaLogo, {
-          x: logoX,
-          y: logoY,
-          width: logoSize,
-          height: logoSize,
-        });
-      }
-    } catch (error) {
-      console.log('Logo not found, skipping');
-    }
+    // Table headers
+    page.drawText('EXAMINATION NO.', { x: colExamNo, y: tableHeaderY + 3, size: 9, font: bold });
+    page.drawText('NAMES', { x: colNames, y: tableHeaderY + 3, size: 9, font: bold });
+    page.drawText('SEX', { x: colSex, y: tableHeaderY + 3, size: 9, font: bold });
     
-    center("MINISTRY OF PRIMARY EDUCATION ASABA,", 12, logoY - 15, bold);
-    center("Delta State.", 11, logoY - 32, font);
-    center("Cognitive/Placement Certification Result", 12, logoY - 55, bold);
+    // Student data row
+    const dataRowY = tableHeaderY - 30;
+    page.drawRectangle({
+      x: colExamNo - 5,
+      y: dataRowY - 5,
+      width: width - 2 * margin - 40,
+      height: 25,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
+    
+    page.drawText(result.examinationNumber || '', { x: colExamNo, y: dataRowY + 3, size: 9, font });
+    page.drawText(result.candidateName || '', { x: colNames, y: dataRowY + 3, size: 9, font });
+    page.drawText(result.sex || '', { x: colSex, y: dataRowY + 3, size: 9, font });
 
     // Passport photo (top-left corner)
     const photoSize = 110;
@@ -123,36 +157,24 @@ export async function GET(request: NextRequest) {
       color: rgb(0.6, 0.6, 0.6),
     });
 
-    // Candidate info
-    const infoY = logoY - 120;
+    // Additional candidate info below table
+    const infoY = dataRowY - 50;
     const leftX = 50;
-    const lineH = 20;
+    const lineH = 18;
 
     const info = [
-      [`Year: ${result.year || 'N/A'}`, ""],
-      ["", ""],
-      [`Candidate Name: ${result.candidateName || 'N/A'}`, ""],
-      ["", ""],
-      [`Sex: ${result.sex || 'N/A'}`, ""],
-      ["", ""],
-      [`School: ${result.school || 'N/A'}`, ""],
-      ["", ""],
-      [`Local Government Area: ${result.lga || 'N/A'}`, ""],
-      ["", ""],
-      [`Examination Number: ${result.examinationNumber || 'N/A'}`, ""],
+      `Year: ${result.year || 'N/A'}`,
+      `School: ${result.school || 'N/A'}`,
+      `Local Government Area: ${result.lga || 'N/A'}`,
     ];
 
-    let lineCount = 0;
-    info.forEach(([left]) => {
-      if (left) {
-        const y = infoY - lineCount * lineH;
-        page.drawText(left, { x: leftX, y, size: 10, font });
-        lineCount++;
-      }
+    info.forEach((text, index) => {
+      const y = infoY - index * lineH;
+      page.drawText(text, { x: leftX, y, size: 10, font });
     });
 
     // Separator line
-    const separatorY = infoY - lineCount * lineH - 10;
+    const separatorY = infoY - info.length * lineH - 10;
     page.drawLine({
       start: { x: 40, y: separatorY },
       end: { x: width - 40, y: separatorY },

@@ -6,19 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Download, RotateCcw, User } from "lucide-react";
+import { Search, Filter, Download, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 interface Student {
@@ -98,10 +87,6 @@ export default function Students() {
     }
   }
 
-  const handleResetPassword = (lga: string, schoolCode?: string) => {
-    const target = schoolCode ? `School ${schoolCode}` : `LGA ${lga}`;
-    toast.success(`Password reset initiated for ${target}`);
-  };
 
   if (loading) {
     return (
@@ -114,32 +99,32 @@ export default function Students() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Students Management</h2>
-        <p className="text-muted-foreground mt-1">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Students Management</h2>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           View, search, and manage all registered students
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Search & Filter</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Search & Filter</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or exam number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
               />
             </div>
             
             <Select value={selectedLGA} onValueChange={setSelectedLGA}>
-              <SelectTrigger className="w-full md:w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px] text-sm sm:text-base">
                 <SelectValue placeholder="Select LGA" />
               </SelectTrigger>
               <SelectContent>
@@ -151,7 +136,7 @@ export default function Students() {
             </Select>
 
             <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-              <SelectTrigger className="w-full md:w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px] text-sm sm:text-base">
                 <SelectValue placeholder="Select School" />
               </SelectTrigger>
               <SelectContent>
@@ -163,48 +148,26 @@ export default function Students() {
             </Select>
           </div>
 
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" />
+          <div className="flex gap-2 sm:gap-3">
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+              <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Export Data
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="default" size="sm">
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Reset Passwords
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reset Passwords</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will reset passwords for filtered students. Are you sure you want to continue?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleResetPassword(selectedLGA, selectedSchool)}>
-                    Reset
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         </CardContent>
       </Card>
 
       <Card className="overflow-hidden w-full">
         <CardHeader>
-          <CardTitle>Registered Students ({students.length})</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Registered Students ({students.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {students.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">No students found</p>
+            <p className="text-center py-8 text-sm text-muted-foreground">No students found</p>
           ) : (
             <div className="overflow-x-auto w-full" style={{ maxWidth: '100%' }}>
               <div className="inline-block min-w-full align-middle">
-                <Table className="w-full table-fixed" style={{ minWidth: '1800px' }}>
+                <Table className="w-full table-fixed text-xs sm:text-sm" style={{ minWidth: '1800px' }}>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[80px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Photo</TableHead>

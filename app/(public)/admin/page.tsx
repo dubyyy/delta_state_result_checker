@@ -96,15 +96,15 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Dashboard Overview</h2>
-        <p className="text-muted-foreground mt-1">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Dashboard Overview</h2>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Quick overview of student registrations and school statistics
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {statsCards.map((stat) => (
           <StatsCard key={stat.title} {...stat} />
         ))}
@@ -112,30 +112,32 @@ export default function Dashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Students by Local Government</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Students by Local Government</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {lgaData.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">No data available</p>
+            <p className="text-center py-8 text-sm text-muted-foreground">No data available</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Local Government</TableHead>
-                  <TableHead className="text-right">Students</TableHead>
-                  <TableHead className="text-right">Schools</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lgaData.map((row) => (
-                  <TableRow key={row.lga} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{row.lga}</TableCell>
-                    <TableCell className="text-right">{row.students}</TableCell>
-                    <TableCell className="text-right">{row.schools}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs sm:text-sm">Local Government</TableHead>
+                    <TableHead className="text-right text-xs sm:text-sm">Students</TableHead>
+                    <TableHead className="text-right text-xs sm:text-sm">Schools</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {lgaData.map((row) => (
+                    <TableRow key={row.lga} className="hover:bg-muted/50">
+                      <TableCell className="font-medium text-xs sm:text-sm">{row.lga}</TableCell>
+                      <TableCell className="text-right text-xs sm:text-sm">{row.students}</TableCell>
+                      <TableCell className="text-right text-xs sm:text-sm">{row.schools}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
