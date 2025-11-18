@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
- 
 }
 
 datasource db {
@@ -21,8 +14,8 @@ model User {
   emailVerified DateTime?
   image         String?
   accounts      Account[]
-  sessions      Session[]
   results       Result[]
+  sessions      Session[]
 }
 
 model Account {
@@ -38,8 +31,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -49,8 +41,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -61,45 +52,36 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-
 model Result {
-  id                  String   @id @default(cuid())
-
-  year                String
-  candidateName       String
-  sex                 String?
-  school              String?
-  lga                 String?
-  examinationNumber   String   @unique
-
-  englishGrade        String?
-  mathGrade           String?
-  generalPaperGrade   String?
-  crsGrade            String?
-
-  remark              String?
-
-  pinCode             String?   
-  serialNumber        String?   
-  lgaExamNumber       String? 
-
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  userId              String?
-  user                User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(cuid())
+  year              String
+  candidateName     String
+  sex               String?
+  school            String?
+  lga               String?
+  examinationNumber String   @unique
+  englishGrade      String?
+  mathGrade         String?
+  generalPaperGrade String?
+  crsGrade          String?
+  remark            String?
+  pinCode           String?
+  serialNumber      String?
+  lgaExamNumber     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model School {
-  id            String   @id @default(cuid())
-  lgaCode       String
-  schoolCode    String
-  schoolName    String
-  password      String
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  id                   String                @id @default(cuid())
+  lgaCode              String
+  schoolCode           String
+  schoolName           String
+  password             String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
   studentRegistrations StudentRegistration[]
 
   @@unique([lgaCode, schoolCode])
@@ -107,6 +89,7 @@ model School {
 
 model StudentRegistration {
   id              String   @id @default(cuid())
+  accCode         String   @unique @default(cuid())
   studentNumber   String   @unique
   firstname       String
   othername       String?
@@ -114,31 +97,21 @@ model StudentRegistration {
   gender          String
   schoolType      String
   passport        String?
-  
-  // English scores
   englishTerm1    String?
   englishTerm2    String?
   englishTerm3    String?
-  
-  // Arithmetic scores
   arithmeticTerm1 String?
   arithmeticTerm2 String?
   arithmeticTerm3 String?
-  
-  // General Paper scores
   generalTerm1    String?
   generalTerm2    String?
   generalTerm3    String?
-  
-  // Religious Studies
   religiousType   String?
   religiousTerm1  String?
   religiousTerm2  String?
   religiousTerm3  String?
-  
   schoolId        String
-  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }

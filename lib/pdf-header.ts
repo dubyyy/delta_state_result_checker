@@ -11,8 +11,8 @@ export interface PDFHeaderData {
 /**
  * Draws the standardized header for all examination PDFs
  * Header format:
- * - MINISTRY OF EDUCATION ASABA DELTA STATE
- * - LGA CODE: X :: LGA_NAME SCHOOL CODE: X : SCHOOL_NAME
+ * - MINISTRY OF PRIMRY EDUCATION ASABA DELTA STATE
+ * - LGA: X :: LGA_NAME SCHOOL CODE: X : SCHOOL_NAME
  * - YYYY/YYYY+1 COGNITIVE/PLACEMENT EXAMINATION FOR PRIMARY SIX PUPILS
  */
 export function drawPDFHeader(
@@ -39,7 +39,7 @@ export function drawPDFHeader(
   let currentY = height - 50;
 
   // Line 1: Ministry header
-  centerText('MINISTRY OF EDUCATION ASABA DELTA STATE', 14, currentY, boldFont);
+  centerText('MINISTRY OF PRIMRY EDUCATION ASABA DELTA STATE', 14, currentY, boldFont);
   currentY -= 25;
 
   // Line 2: LGA and School information
@@ -48,7 +48,7 @@ export function drawPDFHeader(
   const schoolCode = data.schoolCode || '1';
   const schoolName = data.schoolName || '';
   
-  const line2 = `LGA CODE: ${lgaCode} :: ${lgaName} SCHOOL CODE: ${schoolCode} : ${schoolName}`;
+  const line2 = `LGA: ${lgaCode} :: ${lgaName} SCHOOL CODE: ${schoolCode} : ${schoolName}`;
   centerText(line2, 10, currentY, boldFont);
   currentY -= 25;
 

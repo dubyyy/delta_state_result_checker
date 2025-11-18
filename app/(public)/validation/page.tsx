@@ -262,11 +262,11 @@ const Validation = () => {
     let currentY = pageHeight - margin;
 
     // Line 1: Ministry header
-    centerText('MINISTRY OF EDUCATION ASABA DELTA STATE', 14, currentY, boldFont);
+    centerText('MINISTRY OF PRIMRY EDUCATION ASABA DELTA STATE', 14, currentY, boldFont);
     currentY -= 25;
 
     // Line 2: LGA and School information
-    const line2 = `LGA CODE: ${lgaCode} :: ${lgaName} SCHOOL CODE: ${schoolCode} : ${authenticatedSchool.toUpperCase()}`;
+    const line2 = `LGA: ${lgaCode} :: ${lgaName} SCHOOL CODE: ${schoolCode} : ${authenticatedSchool.toUpperCase()}`;
     centerText(line2, 10, currentY, boldFont);
     currentY -= 25;
 
@@ -286,6 +286,9 @@ const Validation = () => {
       const pdfDoc = await PDFDocument.create();
       const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+      const sortedRegs = [...registrations].sort((a, b) =>
+        a.studentNumber.localeCompare(b.studentNumber, undefined, { numeric: true, sensitivity: 'base' })
+      );
 
       // Page dimensions
       const pageWidth = 595; // A4 width in points
@@ -379,7 +382,7 @@ const Validation = () => {
       drawTableHeader();
 
       // Draw table rows
-      registrations.forEach((student, index) => {
+      sortedRegs.forEach((student, index) => {
         checkNewPage();
 
         // Row background (alternating)
@@ -493,6 +496,9 @@ const Validation = () => {
       const pdfDoc = await PDFDocument.create();
       const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+      const sortedRegs = [...registrations].sort((a, b) =>
+        a.studentNumber.localeCompare(b.studentNumber, undefined, { numeric: true, sensitivity: 'base' })
+      );
 
       // Page dimensions (Landscape)
       const pageWidth = 842; // A4 height becomes width in landscape
@@ -591,7 +597,7 @@ const Validation = () => {
       drawTableHeader();
 
       // Draw table rows
-      registrations.forEach((student, index) => {
+      sortedRegs.forEach((student, index) => {
         checkNewPage();
 
         // Row background (alternating)
@@ -720,6 +726,9 @@ const Validation = () => {
       const pdfDoc = await PDFDocument.create();
       const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+      const sortedRegs = [...registrations].sort((a, b) =>
+        a.studentNumber.localeCompare(b.studentNumber, undefined, { numeric: true, sensitivity: 'base' })
+      );
 
       // Page dimensions
       const pageWidth = 595; // A4 width in points
@@ -754,8 +763,8 @@ const Validation = () => {
       };
 
       // Process each student
-      for (let i = 0; i < registrations.length; i++) {
-        const student = registrations[i];
+      for (let i = 0; i < sortedRegs.length; i++) {
+        const student = sortedRegs[i];
         
         // Calculate position in grid
         const posInPage = photoCount % photosPerPage;
@@ -1141,6 +1150,9 @@ const Validation = () => {
                           student.religiousType.toLowerCase().includes(query)
                         );
                       });
+                      const sortedRegistrations = [...filteredRegistrations].sort((a, b) =>
+                        a.studentNumber.localeCompare(b.studentNumber, undefined, { numeric: true, sensitivity: 'base' })
+                      );
 
                       return (
                         <>
@@ -1209,7 +1221,7 @@ const Validation = () => {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {filteredRegistrations.map((student) => (
+                                  {sortedRegistrations.map((student) => (
                             <TableRow key={student.id}>
                               <TableCell>
                                 {student.passport ? (

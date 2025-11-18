@@ -127,39 +127,58 @@ const SchoolRegistration = () => {
     }
   }, []);
 
-  // Load cached registrations and counter for the authenticated school
+  // Load registrations from server for the authenticated school
+  const loadRegistrationsFromServer = async () => {
+    try {
+      const token = localStorage.getItem('schoolToken');
+      if (!token) return;
+      const res = await fetch('/api/school/registrations', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error('Failed to fetch registrations:', data.error || res.statusText);
+        return;
+      }
+      const data = await res.json();
+      const mapped: Registration[] = (data.registrations || []).map((r: any) => ({
+        id: typeof r.id === 'number' ? r.id : Number(r.id) || Date.now() + Math.floor(Math.random() * 1000),
+        studentNumber: r.studentNumber,
+        lastname: r.lastname,
+        othername: r.othername || '',
+        firstname: r.firstname,
+        gender: r.gender,
+        schoolType: r.schoolType,
+        passport: r.passport || null,
+        english: { term1: r.englishTerm1, term2: r.englishTerm2, term3: r.englishTerm3 },
+        arithmetic: { term1: r.arithmeticTerm1, term2: r.arithmeticTerm2, term3: r.arithmeticTerm3 },
+        general: { term1: r.generalTerm1, term2: r.generalTerm2, term3: r.generalTerm3 },
+        religious: { type: r.religiousType, term1: r.religiousTerm1, term2: r.religiousTerm2, term3: r.religiousTerm3 },
+      }));
+      setRegistrations(mapped);
+    } catch (e) {
+      console.error('Error loading registrations from server:', e);
+    }
+  };
+
+  // Local caching removed: table is fully server-driven
+  useEffect(() => {
+    // no-op
+  }, [isLoggedIn, lgaCode, schoolCode]);
+
+  // Always fetch the latest DB registrations after login/init
   useEffect(() => {
     if (!isLoggedIn || !lgaCode || !schoolCode) return;
-    try {
-      const regsKey = `registrations_${lgaCode}_${schoolCode}`;
-      const counterKey = `studentCounter_${lgaCode}_${schoolCode}`;
-      const cachedRegs = localStorage.getItem(regsKey);
-      const cachedCounter = localStorage.getItem(counterKey);
-      if (cachedRegs && registrations.length === 0) {
-        const parsed: Registration[] = JSON.parse(cachedRegs);
-        setRegistrations(parsed);
-      }
-      if (cachedCounter) {
-        const parsedCounter = parseInt(cachedCounter, 10);
-        if (!Number.isNaN(parsedCounter)) setStudentCounter(parsedCounter);
-      }
-    } catch (e) {
-      console.error('Failed to load cached registrations:', e);
-    }
+    loadRegistrationsFromServer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, lgaCode, schoolCode]);
 
-  // Persist registrations and counter whenever they change
+  // Local caching removed: do not persist to localStorage
   useEffect(() => {
-    if (!isLoggedIn || !lgaCode || !schoolCode) return;
-    try {
-      const regsKey = `registrations_${lgaCode}_${schoolCode}`;
-      const counterKey = `studentCounter_${lgaCode}_${schoolCode}`;
-      localStorage.setItem(regsKey, JSON.stringify(registrations));
-      localStorage.setItem(counterKey, String(studentCounter));
-    } catch (e) {
-      console.error('Failed to persist registrations:', e);
-    }
+    // no-op
   }, [isLoggedIn, lgaCode, schoolCode, registrations, studentCounter]);
 
   // Print current registrations with standardized header
@@ -170,12 +189,14 @@ const SchoolRegistration = () => {
     const school = authenticatedSchool.toUpperCase();
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
-
-    const headerLine1 = 'MINISTRY OF EDUCATION ASABA DELTA STATE';
-    const headerLine2 = `LGA CODE: ${lgaCode || '1'} :: ${lgaName || 'ANIOCHA-NORTH'} SCHOOL CODE: ${schoolCode || '1'} : ${school}`;
+    const headerLine1 = 'MINISTRY OF PRIMRY EDUCATION ASABA DELTA STATE';
+    const headerLine2 = `LGA: ${lgaCode || '1'} :: ${lgaName || 'ANIOCHA-NORTH'} SCHOOL CODE: ${schoolCode || '1'} : ${school}`;
     const headerLine3 = `${currentYear}/${nextYear} COGNITIVE/PLACEMENT EXAMINATION FOR PRIMARY SIX PUPILS`;
 
-    const rowsHtml = registrations.map((r) => {
+    const rowsHtml = registrations
+      .slice()
+      .sort((a, b) => a.studentNumber.localeCompare(b.studentNumber))
+      .map((r) => {
       const name = `${r.firstname} ${r.othername ? r.othername + ' ' : ''}${r.lastname}`.trim();
       return `
         <tr>
@@ -248,21 +269,140 @@ const SchoolRegistration = () => {
     }, 300);
   };
 
-  // Generate student number: xfffmmmm format
-  const generateStudentNumber = (lgaCode: string, schoolCode: string, counter: number): string => {
+  const saveRegistrationsToServer = async (toSave: Registration[]) => {
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      const token = localStorage.getItem('schoolToken');
+      if (!token) {
+        setSaveMessage({ type: 'error', text: 'Authentication token not found. Please login again.' });
+        return;
+      }
+      const response = await fetch('/api/school/registrations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ registrations: toSave }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const msg: string = data?.error || '';
+        // If duplicate student number error, recompute and override
+        if (response.status === 400 && msg.toLowerCase().includes('already exist')) {
+          try {
+            const resGet = await fetch('/api/school/registrations', {
+              method: 'GET',
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const getData = await resGet.json();
+            const existing: Registration[] = (getData.registrations || []).map((r: any) => ({
+              id: typeof r.id === 'number' ? r.id : Number(r.id) || Date.now() + Math.floor(Math.random() * 1000),
+              studentNumber: r.studentNumber,
+              lastname: r.lastname,
+              othername: r.othername || '',
+              firstname: r.firstname,
+              gender: r.gender,
+              schoolType: r.schoolType,
+              passport: r.passport || null,
+              english: { term1: r.englishTerm1, term2: r.englishTerm2, term3: r.englishTerm3 },
+              arithmetic: { term1: r.arithmeticTerm1, term2: r.arithmeticTerm2, term3: r.arithmeticTerm3 },
+              general: { term1: r.generalTerm1, term2: r.generalTerm2, term3: r.generalTerm3 },
+              religious: { type: r.religiousType, term1: r.religiousTerm1, term2: r.religiousTerm2, term3: r.religiousTerm3 },
+            }));
+            // Merge: existing + new toSave (may not be in existing yet)
+            const merged = [...existing, ...toSave.map(n => ({...n}))];
+            const recomputedAll = recomputeStudentNumbers(lgaCode, schoolCode, merged);
+            const resOverride = await fetch('/api/school/registrations', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({ registrations: recomputedAll, override: true }),
+            });
+            const overrideData = await resOverride.json();
+            if (!resOverride.ok) {
+              setSaveMessage({ type: 'error', text: overrideData.error || 'Failed to override registrations' });
+              return;
+            }
+            setSaveMessage({ type: 'success', text: `Database reshuffled and saved ${overrideData.count} registration(s).` });
+            await loadRegistrationsFromServer();
+            setTimeout(() => setSaveMessage(null), 5000);
+            return;
+          } catch (err) {
+            console.error('Override after duplicate failed:', err);
+            setSaveMessage({ type: 'error', text: 'Failed to resolve duplicate by overriding. Please try Save Data.' });
+            return;
+          }
+        }
+        setSaveMessage({ type: 'error', text: msg || 'Failed to save registrations' });
+        return;
+      }
+      setSaveMessage({ type: 'success', text: `Successfully saved ${data.count} registration(s) to the database!` });
+      setTimeout(() => setSaveMessage(null), 5000);
+    } catch (error) {
+      console.error('Save error:', error);
+      setSaveMessage({ type: 'error', text: 'An error occurred while saving. Please try again.' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Generate student number: xfffNNNN format where NNNN is alphabetical rank of unique surnames
+  const generateStudentNumber = (
+    lgaCode: string,
+    schoolCode: string,
+    surname: string,
+    currentRegs: Registration[]
+  ): string => {
     // Find the actual school data to get lgaCode
     const schools = schoolsData as SchoolData[];
     const school = schools.find(
       (s) => s.lCode === lgaCode && s.schCode === schoolCode
     );
-    
+
     if (!school) return '';
-    
+
+    const normalize = (s: string) => s.trim().toUpperCase();
+    const target = normalize(surname);
+
+    // Build a set of unique, normalized surnames including the new one
+    const uniqueSurnames = Array.from(
+      new Set([
+        ...currentRegs.map((r) => normalize(r.lastname)),
+        target,
+      ])
+    ).sort((a, b) => a.localeCompare(b));
+
+    const rank = Math.max(0, uniqueSurnames.indexOf(target)) + 1; // 1-based
+
     const x = school.lgaCode; // 1-2 digits
     const fff = school.schCode.padStart(3, '0'); // 3 digits (padded)
-    const mmmm = counter.toString().padStart(4, '0'); // 4 digits (padded)
-    
-    return `${x}${fff}${mmmm}`;
+    const nnnn = rank.toString().padStart(4, '0'); // 4 digits from surname rank
+
+    return `${x}${fff}${nnnn}`;
+  };
+
+  // Recompute student numbers for all registrations based on current alphabetical rank of unique surnames
+  const recomputeStudentNumbers = (
+    lga: string,
+    sch: string,
+    regs: Registration[]
+  ): Registration[] => {
+    const schools = schoolsData as SchoolData[];
+    const school = schools.find((s) => s.lCode === lga && s.schCode === sch);
+    if (!school) return regs;
+    const normalize = (s: string) => s.trim().toUpperCase();
+    const uniqueSurnames = Array.from(new Set(regs.map((r) => normalize(r.lastname)))).sort((a, b) => a.localeCompare(b));
+    const x = school.lgaCode;
+    const fff = school.schCode.padStart(3, '0');
+    const rankOf = (surname: string) => (uniqueSurnames.indexOf(normalize(surname)) + 1).toString().padStart(4, '0');
+    return regs.map((r) => ({
+      ...r,
+      studentNumber: `${x}${fff}${rankOf(r.lastname)}`,
+    }));
   };
 
   // Helper function to limit score input to 2 digits
@@ -476,7 +616,7 @@ const SchoolRegistration = () => {
                 </form>
               ) : (
                 // Registration Form
-                <form className="space-y-6" onSubmit={(e) => {
+                <form className="space-y-6" onSubmit={async (e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
 
@@ -498,12 +638,10 @@ const SchoolRegistration = () => {
                     return;
                   }
                   
-                  // Generate student number
-                  const studentNumber = generateStudentNumber(lgaCode, schoolCode, studentCounter);
-                  
+                  // Prepare new registration (studentNumber will be assigned after recompute)
                   const newRegistration: Registration = {
                     id: Date.now(),
-                    studentNumber: studentNumber,
+                    studentNumber: '',
                     lastname: formData.get('lastname') as string,
                     othername: formData.get('othername') as string,
                     firstname: formData.get('firstname') as string,
@@ -532,8 +670,17 @@ const SchoolRegistration = () => {
                       type: religiousType,
                     },
                   };
-                  
-                  setRegistrations([...registrations, newRegistration]);
+                  // Recompute student numbers for all registrations including the new one
+                  const withNew = [...registrations, newRegistration];
+                  const recomputed = recomputeStudentNumbers(lgaCode, schoolCode, withNew);
+                  setRegistrations(recomputed);
+                  // Save only the newly added registration with its final studentNumber
+                  const savedNew = recomputed.find(r => r.id === newRegistration.id);
+                  if (savedNew) {
+                    await saveRegistrationsToServer([savedNew]);
+                    // Refresh from server so the table mirrors DB
+                    await loadRegistrationsFromServer();
+                  }
                   setStudentCounter(studentCounter + 1); // Increment counter
                   e.currentTarget.reset();
                   setSelectedImage(null);
@@ -923,13 +1070,15 @@ const SchoolRegistration = () => {
                           return;
                         }
                         
+                        const recomputed = recomputeStudentNumbers(lgaCode, schoolCode, registrations);
+                        setRegistrations(recomputed);
                         const response = await fetch('/api/school/registrations', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`,
                           },
-                          body: JSON.stringify({ registrations }),
+                          body: JSON.stringify({ registrations: recomputed, override: true }),
                         });
                         
                         const data = await response.json();
@@ -946,15 +1095,14 @@ const SchoolRegistration = () => {
                           setSaveMessage(null);
                         }, 5000);
                         
-                        // Clear registrations after successful save
+                        // Reload from server so the table mirrors DB
                         try {
                           const regsKey = `registrations_${lgaCode}_${schoolCode}`;
                           const counterKey = `studentCounter_${lgaCode}_${schoolCode}`;
                           localStorage.removeItem(regsKey);
                           localStorage.removeItem(counterKey);
                         } catch {}
-                        setRegistrations([]);
-                        setStudentCounter(1);
+                        await loadRegistrationsFromServer();
                       } catch (error) {
                         console.error('Save error:', error);
                         setSaveMessage({ type: 'error', text: 'An error occurred while saving. Please try again.' });
@@ -965,7 +1113,7 @@ const SchoolRegistration = () => {
                     disabled={isSaving}
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? 'Saving...' : 'Save Data'}
+                    {isSaving ? 'Saving...' : 'finish registeration'}
                   </Button>
                   <Button variant="outline" onClick={handlePrint} disabled={!registrations.length}>
                     <Printer className="h-4 w-4 mr-2" />
@@ -1069,7 +1217,10 @@ const SchoolRegistration = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {registrations.map((reg) => {
+                      {registrations
+                        .slice()
+                        .sort((a, b) => a.studentNumber.localeCompare(b.studentNumber))
+                        .map((reg) => {
                         const isEditing = editingId === reg.id;
                         const currentData = isEditing && editData ? editData : reg;
                         
@@ -1318,12 +1469,47 @@ const SchoolRegistration = () => {
                                   <Button
                                     size="sm"
                                     variant="default"
-                                    onClick={() => {
-                                      setRegistrations(registrations.map(r => 
-                                        r.id === reg.id ? editData! : r
-                                      ));
-                                      setEditingId(null);
-                                      setEditData(null);
+                                    onClick={async () => {
+                                      try {
+                                        const token = localStorage.getItem('schoolToken');
+                                        if (!token) {
+                                          setSaveMessage({ type: 'error', text: 'Authentication token not found. Please login again.' });
+                                          return;
+                                        }
+                                        const update = {
+                                          firstname: editData!.firstname,
+                                          othername: editData!.othername,
+                                          lastname: editData!.lastname,
+                                          gender: editData!.gender,
+                                          schoolType: editData!.schoolType,
+                                          passport: editData!.passport,
+                                          english: { ...editData!.english },
+                                          arithmetic: { ...editData!.arithmetic },
+                                          general: { ...editData!.general },
+                                          religious: { ...editData!.religious },
+                                        };
+                                        const res = await fetch('/api/school/registrations', {
+                                          method: 'PATCH',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`,
+                                          },
+                                          body: JSON.stringify({ id: reg.id, update }),
+                                        });
+                                        const data = await res.json();
+                                        if (!res.ok) {
+                                          setSaveMessage({ type: 'error', text: data.error || 'Failed to update registration' });
+                                          return;
+                                        }
+                                        setSaveMessage({ type: 'success', text: 'Registration updated successfully.' });
+                                        setEditingId(null);
+                                        setEditData(null);
+                                        await loadRegistrationsFromServer();
+                                        setTimeout(() => setSaveMessage(null), 4000);
+                                      } catch (e) {
+                                        console.error('Inline update error:', e);
+                                        setSaveMessage({ type: 'error', text: 'An error occurred while updating. Please try again.' });
+                                      }
                                     }}
                                   >
                                     <Save className="h-4 w-4" />
@@ -1354,9 +1540,33 @@ const SchoolRegistration = () => {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => {
-                                      if (confirm('Are you sure you want to delete this student registration?')) {
-                                        setRegistrations(registrations.filter(r => r.id !== reg.id));
+                                    onClick={async () => {
+                                      if (!confirm('Are you sure you want to delete this student registration?')) return;
+                                      try {
+                                        const token = localStorage.getItem('schoolToken');
+                                        if (!token) {
+                                          setSaveMessage({ type: 'error', text: 'Authentication token not found. Please login again.' });
+                                          return;
+                                        }
+                                        const res = await fetch('/api/school/registrations', {
+                                          method: 'DELETE',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`,
+                                          },
+                                          body: JSON.stringify({ id: reg.id }),
+                                        });
+                                        const data = await res.json();
+                                        if (!res.ok) {
+                                          setSaveMessage({ type: 'error', text: data.error || 'Failed to delete registration' });
+                                          return;
+                                        }
+                                        setSaveMessage({ type: 'success', text: 'Registration deleted successfully.' });
+                                        await loadRegistrationsFromServer();
+                                        setTimeout(() => setSaveMessage(null), 4000);
+                                      } catch (e) {
+                                        console.error('Inline delete error:', e);
+                                        setSaveMessage({ type: 'error', text: 'An error occurred while deleting. Please try again.' });
                                       }
                                     }}
                                   >
