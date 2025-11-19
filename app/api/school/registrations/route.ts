@@ -167,6 +167,9 @@ interface RegistrationData {
   arithmetic: { term1: string; term2: string; term3: string };
   general: { term1: string; term2: string; term3: string };
   religious: { term1: string; term2: string; term3: string; type: string };
+  isLateRegistration?: boolean;
+  year?: string;
+  prcd?: number;
 }
 
 export async function GET(req: NextRequest) {
@@ -292,6 +295,9 @@ export async function POST(req: NextRequest) {
         religiousTerm1: reg.religious.term1 || '-',
         religiousTerm2: reg.religious.term2 || '-',
         religiousTerm3: reg.religious.term3 || '-',
+        lateRegistration: reg.isLateRegistration || false,
+        year: reg.year || '2025/2026',
+        prcd: reg.prcd || 1,
         schoolId: decoded.schoolId,
       }))
     );
@@ -302,6 +308,9 @@ export async function POST(req: NextRequest) {
         await tx.studentRegistration.deleteMany({ where: { schoolId: decoded.schoolId } });
         const created = await tx.studentRegistration.createMany({ data: studentData });
         return created;
+      }, {
+        maxWait: 20000, // Maximum time to wait for a transaction slot (20s)
+        timeout: 30000, // Maximum time the transaction can run (30s)
       });
       return NextResponse.json(
         {

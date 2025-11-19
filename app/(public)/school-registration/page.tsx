@@ -20,7 +20,7 @@ interface SchoolData {
 }
 
 interface Registration {
-  id: number;
+  id: string | number;
   studentNumber: string;
   lastname: string;
   othername: string;
@@ -32,6 +32,9 @@ interface Registration {
   arithmetic: { term1: string; term2: string; term3: string };
   general: { term1: string; term2: string; term3: string };
   religious: { term1: string; term2: string; term3: string; type: string };
+  isLateRegistration?: boolean;
+  year?: string;
+  prcd?: number;
 }
 
 // LGA options: label = name, value = code
@@ -96,7 +99,7 @@ const SchoolRegistration = () => {
   const [religiousTerm2, setReligiousTerm2] = useState<string>("");
   const [religiousTerm3, setReligiousTerm3] = useState<string>("");
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editData, setEditData] = useState<Registration | null>(null);
   const [loginError, setLoginError] = useState<string>("");
   const [authenticatedSchool, setAuthenticatedSchool] = useState<string>("");
@@ -106,6 +109,30 @@ const SchoolRegistration = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [isLateRegistrationMode, setIsLateRegistrationMode] = useState<boolean>(false);
+  const [showFinishConfirmModal, setShowFinishConfirmModal] = useState<boolean>(false);
+  const [registrationOpen, setRegistrationOpen] = useState<boolean>(true);
+  const [checkingRegistrationStatus, setCheckingRegistrationStatus] = useState<boolean>(false);
+
+  // Check registration status from server
+  const checkRegistrationStatus = async (schoolId: string) => {
+    try {
+      setCheckingRegistrationStatus(true);
+      const response = await fetch(`/api/admin/toggle-registration?schoolId=${schoolId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setRegistrationOpen(data.registrationOpen ?? true);
+        // If registration is closed, enable late registration mode
+        if (!data.registrationOpen) {
+          setIsLateRegistrationMode(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking registration status:', error);
+    } finally {
+      setCheckingRegistrationStatus(false);
+    }
+  };
 
   // Check for existing JWT token on component mount
   useEffect(() => {
@@ -119,6 +146,10 @@ const SchoolRegistration = () => {
         setAuthenticatedSchool(school.schoolName);
         setLgaCode(school.lgaCode);
         setSchoolCode(school.schoolCode);
+        // Check registration status for this school
+        if (school.id) {
+          checkRegistrationStatus(school.id);
+        }
       } catch (error) {
         console.error('Error parsing school data:', error);
         localStorage.removeItem('schoolToken');
@@ -145,7 +176,7 @@ const SchoolRegistration = () => {
       }
       const data = await res.json();
       const mapped: Registration[] = (data.registrations || []).map((r: any) => ({
-        id: typeof r.id === 'number' ? r.id : Number(r.id) || Date.now() + Math.floor(Math.random() * 1000),
+        id: r.id,
         studentNumber: r.studentNumber,
         lastname: r.lastname,
         othername: r.othername || '',
@@ -157,6 +188,7 @@ const SchoolRegistration = () => {
         arithmetic: { term1: r.arithmeticTerm1, term2: r.arithmeticTerm2, term3: r.arithmeticTerm3 },
         general: { term1: r.generalTerm1, term2: r.generalTerm2, term3: r.generalTerm3 },
         religious: { type: r.religiousType, term1: r.religiousTerm1, term2: r.religiousTerm2, term3: r.religiousTerm3 },
+        isLateRegistration: r.lateRegistration || false,
       }));
       setRegistrations(mapped);
     } catch (e) {
@@ -169,12 +201,24 @@ const SchoolRegistration = () => {
     // no-op
   }, [isLoggedIn, lgaCode, schoolCode]);
 
-  // Always fetch the latest DB registrations after login/init
+  // Load registrations and check status when logged in
   useEffect(() => {
-    if (!isLoggedIn || !lgaCode || !schoolCode) return;
-    loadRegistrationsFromServer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, lgaCode, schoolCode]);
+    if (isLoggedIn) {
+      loadRegistrationsFromServer();
+      // Re-check registration status
+      const schoolData = localStorage.getItem('schoolData');
+      if (schoolData) {
+        try {
+          const school = JSON.parse(schoolData);
+          if (school.id) {
+            checkRegistrationStatus(school.id);
+          }
+        } catch (error) {
+          console.error('Error parsing school data:', error);
+        }
+      }
+    }
+  }, [isLoggedIn]);
 
   // Local caching removed: do not persist to localStorage
   useEffect(() => {
@@ -182,32 +226,85 @@ const SchoolRegistration = () => {
   }, [isLoggedIn, lgaCode, schoolCode, registrations, studentCounter]);
 
   // Print current registrations with standardized header
+  // Handle finish registration action
+  const handleFinishRegistration = async () => {
+    setShowFinishConfirmModal(false);
+    setIsSaving(true);
+    setSaveMessage(null);
+    
+    try {
+      const token = localStorage.getItem('schoolToken');
+      
+      if (!token) {
+        setSaveMessage({ type: 'error', text: 'Authentication token not found. Please login again.' });
+        return;
+      }
+      
+      // First save current registrations
+      const recomputed = recomputeStudentNumbers(lgaCode, schoolCode, registrations);
+      const response = await fetch('/api/school/registrations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ registrations: recomputed, override: true }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setSaveMessage({ type: 'error', text: data.error || 'Failed to save registrations' });
+        return;
+      }
+      
+      // Clear registrations from display and enable late registration mode
+      setRegistrations([]);
+      setIsLateRegistrationMode(true);
+      
+      setSaveMessage({ type: 'success', text: `Registration finalized! ${data.count} student(s) saved. Late registration mode is now active.` });
+      
+      // Auto-dismiss success message after 7 seconds
+      setTimeout(() => {
+        setSaveMessage(null);
+      }, 7000);
+    } catch (error) {
+      console.error('Save error:', error);
+      setSaveMessage({ type: 'error', text: 'An error occurred while saving. Please try again.' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handlePrint = () => {
     if (!isLoggedIn || registrations.length === 0) return;
     const lgaItem = LGAS.find((l) => l.code === lgaCode);
     const lgaName = (lgaItem?.name || '').toUpperCase();
     const school = authenticatedSchool.toUpperCase();
+    
+    // Find the school data to get the actual lgaCode
+    const schools = schoolsData as SchoolData[];
+    const schoolData = schools.find((s) => s.lCode === lgaCode && s.schCode === schoolCode);
+    const actualLgaCode = schoolData?.lgaCode || '1';
+    
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
-    const headerLine1 = 'MINISTRY OF PRIMRY EDUCATION ASABA DELTA STATE';
-    const headerLine2 = `LGA: ${lgaCode || '1'} :: ${lgaName || 'ANIOCHA-NORTH'} SCHOOL CODE: ${schoolCode || '1'} : ${school}`;
+    const headerLine1 = 'MINISTRY OF PRIMARY EDUCATION ASABA DELTA STATE';
+    const headerLine2 = `LGA: ${actualLgaCode} :: ${lgaName || 'ANIOCHA-NORTH'} SCHOOL CODE: ${schoolCode || '1'} : ${school}`;
     const headerLine3 = `${currentYear}/${nextYear} COGNITIVE/PLACEMENT EXAMINATION FOR PRIMARY SIX PUPILS`;
 
     const rowsHtml = registrations
       .slice()
       .sort((a, b) => a.studentNumber.localeCompare(b.studentNumber))
-      .map((r) => {
-      const name = `${r.firstname} ${r.othername ? r.othername + ' ' : ''}${r.lastname}`.trim();
+      .map((r, index) => {
       return `
         <tr>
+          <td>${index + 1}</td>
           <td>${r.studentNumber}</td>
-          <td>${name}</td>
+          <td>${r.lastname}</td>
+          <td>${r.othername || '-'}</td>
+          <td>${r.firstname}</td>
           <td style="text-transform: capitalize">${r.gender}</td>
-          <td style="text-transform: capitalize">${r.schoolType}</td>
-          <td>${r.english.term1}/${r.english.term2}/${r.english.term3}</td>
-          <td>${r.arithmetic.term1}/${r.arithmetic.term2}/${r.arithmetic.term3}</td>
-          <td>${r.general.term1}/${r.general.term2}/${r.general.term3}</td>
-          <td>${r.religious.type === 'islam' ? 'Islamic' : 'Christian'} ${r.religious.term1}/${r.religious.term2}/${r.religious.term3}</td>
         </tr>`;
     }).join('');
 
@@ -239,14 +336,12 @@ const SchoolRegistration = () => {
           <table>
             <thead>
               <tr>
-                <th>EXAMINATION NO.</th>
-                <th>NAMES</th>
+                <th>REG NO.</th>
+                <th>EXAM NO.</th>
+                <th>LNAME</th>
+                <th>MNAME</th>
+                <th>FNAME</th>
                 <th>SEX</th>
-                <th>SCHOOL TYPE</th>
-                <th>ENGLISH (T1/T2/T3)</th>
-                <th>ARITHMETIC (T1/T2/T3)</th>
-                <th>GENERAL PAPER (T1/T2/T3)</th>
-                <th>RELIGIOUS (TYPE & T1/T2/T3)</th>
               </tr>
             </thead>
             <tbody>
@@ -298,7 +393,7 @@ const SchoolRegistration = () => {
             });
             const getData = await resGet.json();
             const existing: Registration[] = (getData.registrations || []).map((r: any) => ({
-              id: typeof r.id === 'number' ? r.id : Number(r.id) || Date.now() + Math.floor(Math.random() * 1000),
+              id: r.id,
               studentNumber: r.studentNumber,
               lastname: r.lastname,
               othername: r.othername || '',
@@ -310,6 +405,7 @@ const SchoolRegistration = () => {
               arithmetic: { term1: r.arithmeticTerm1, term2: r.arithmeticTerm2, term3: r.arithmeticTerm3 },
               general: { term1: r.generalTerm1, term2: r.generalTerm2, term3: r.generalTerm3 },
               religious: { type: r.religiousType, term1: r.religiousTerm1, term2: r.religiousTerm2, term3: r.religiousTerm3 },
+              isLateRegistration: r.lateRegistration || false,
             }));
             // Merge: existing + new toSave (may not be in existing yet)
             const merged = [...existing, ...toSave.map(n => ({...n}))];
@@ -403,6 +499,60 @@ const SchoolRegistration = () => {
       ...r,
       studentNumber: `${x}${fff}${rankOf(r.lastname)}`,
     }));
+  };
+
+  // Generate incremental student number for late registrations
+  const generateIncrementalStudentNumber = async (
+    lga: string,
+    sch: string
+  ): Promise<string> => {
+    const schools = schoolsData as SchoolData[];
+    const school = schools.find((s) => s.lCode === lga && s.schCode === sch);
+    if (!school) return '';
+    
+    const x = school.lgaCode;
+    const fff = school.schCode.padStart(3, '0');
+    
+    // Fetch ALL existing registrations from the database to find the true maximum
+    try {
+      const token = localStorage.getItem('schoolToken');
+      if (!token) return `${x}${fff}0001`;
+      
+      const response = await fetch('/api/school/registrations', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to fetch registrations for number generation');
+        return `${x}${fff}0001`;
+      }
+      
+      const data = await response.json();
+      const allRegs = data.registrations || [];
+      
+      // Find the highest existing sequence number (last 4 digits)
+      let maxSequence = 0;
+      allRegs.forEach((reg: any) => {
+        if (reg.studentNumber) {
+          // Extract last 4 digits from student number
+          const lastFourDigits = reg.studentNumber.slice(-4);
+          const sequence = parseInt(lastFourDigits, 10);
+          if (!isNaN(sequence) && sequence > maxSequence) {
+            maxSequence = sequence;
+          }
+        }
+      });
+      
+      // Increment by 1 for the new late registration
+      const nextSequence = (maxSequence + 1).toString().padStart(4, '0');
+      return `${x}${fff}${nextSequence}`;
+    } catch (error) {
+      console.error('Error generating incremental student number:', error);
+      return `${x}${fff}0001`;
+    }
   };
 
   // Helper function to limit score input to 2 digits
@@ -616,6 +766,28 @@ const SchoolRegistration = () => {
                 </form>
               ) : (
                 // Registration Form
+                <>
+                {/* Registration Status Banners */}
+                {!registrationOpen && (
+                  <div className="mb-4 p-4 rounded-lg bg-red-50 border-2 border-red-300 flex items-center gap-3">
+                    <AlertCircle className="h-6 w-6 text-red-600 shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-bold text-red-900 text-lg">Registration Closed by Admin</p>
+                      <p className="text-sm text-red-800">
+                        All new student registrations will be automatically marked as <strong>LATE</strong>.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {isLateRegistrationMode && registrationOpen && (
+                  <div className="mb-4 p-4 rounded-lg bg-amber-50 border-2 border-amber-300 flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-amber-900">Late Registration Mode Active</p>
+                      <p className="text-sm text-amber-800">All new registrations will be marked as late registrations.</p>
+                    </div>
+                  </div>
+                )}
                 <form className="space-y-6" onSubmit={async (e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
@@ -638,7 +810,7 @@ const SchoolRegistration = () => {
                     return;
                   }
                   
-                  // Prepare new registration (studentNumber will be assigned after recompute)
+                  // Prepare new registration (studentNumber will be assigned after recompute or incrementally)
                   const newRegistration: Registration = {
                     id: Date.now(),
                     studentNumber: '',
@@ -669,17 +841,35 @@ const SchoolRegistration = () => {
                       term3: formData.get('religious-term3') as string || '-',
                       type: religiousType,
                     },
+                    isLateRegistration: isLateRegistrationMode || !registrationOpen,
                   };
-                  // Recompute student numbers for all registrations including the new one
-                  const withNew = [...registrations, newRegistration];
-                  const recomputed = recomputeStudentNumbers(lgaCode, schoolCode, withNew);
-                  setRegistrations(recomputed);
-                  // Save only the newly added registration with its final studentNumber
-                  const savedNew = recomputed.find(r => r.id === newRegistration.id);
-                  if (savedNew) {
-                    await saveRegistrationsToServer([savedNew]);
-                    // Refresh from server so the table mirrors DB
+                  
+                  // Handle student number assignment based on registration mode
+                  // Use late registration mode if either manually enabled OR registration is closed
+                  if (isLateRegistrationMode || !registrationOpen) {
+                    // Late registration: Generate incremental student number from database
+                    const incrementalNumber = await generateIncrementalStudentNumber(lgaCode, schoolCode);
+                    newRegistration.studentNumber = incrementalNumber;
+                    
+                    // Add to registrations without recomputing
+                    const withNew = [...registrations, newRegistration];
+                    setRegistrations(withNew);
+                    
+                    // Save only the new late registration
+                    await saveRegistrationsToServer([newRegistration]);
                     await loadRegistrationsFromServer();
+                  } else {
+                    // Normal registration: Recompute all student numbers alphabetically
+                    const withNew = [...registrations, newRegistration];
+                    const recomputed = recomputeStudentNumbers(lgaCode, schoolCode, withNew);
+                    setRegistrations(recomputed);
+                    
+                    // Save only the newly added registration with its final studentNumber
+                    const savedNew = recomputed.find(r => r.id === newRegistration.id);
+                    if (savedNew) {
+                      await saveRegistrationsToServer([savedNew]);
+                      await loadRegistrationsFromServer();
+                    }
                   }
                   setStudentCounter(studentCounter + 1); // Increment counter
                   e.currentTarget.reset();
@@ -961,7 +1151,7 @@ const SchoolRegistration = () => {
                   <div className="space-y-3">
                     <div className="flex items-center gap-4">
                       <Label className="text-base font-medium">Religious Studies</Label>
-                      <Select value={religiousType} onValueChange={setReligiousType}>
+                      <Select value={religiousType} onValueChange={setReligiousType} required>
                         <SelectTrigger className="w-[200px]">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
@@ -1041,6 +1231,7 @@ const SchoolRegistration = () => {
                   Submit Registration
                 </Button>
               </form>
+              </>
               )}
             </CardContent>
           </Card>
@@ -1058,62 +1249,11 @@ const SchoolRegistration = () => {
                   </div>
                   <div className="flex items-center gap-2">
                   <Button
-                    onClick={async () => {
-                      setIsSaving(true);
-                      setSaveMessage(null);
-                      
-                      try {
-                        const token = localStorage.getItem('schoolToken');
-                        
-                        if (!token) {
-                          setSaveMessage({ type: 'error', text: 'Authentication token not found. Please login again.' });
-                          return;
-                        }
-                        
-                        const recomputed = recomputeStudentNumbers(lgaCode, schoolCode, registrations);
-                        setRegistrations(recomputed);
-                        const response = await fetch('/api/school/registrations', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`,
-                          },
-                          body: JSON.stringify({ registrations: recomputed, override: true }),
-                        });
-                        
-                        const data = await response.json();
-                        
-                        if (!response.ok) {
-                          setSaveMessage({ type: 'error', text: data.error || 'Failed to save registrations' });
-                          return;
-                        }
-                        
-                        setSaveMessage({ type: 'success', text: `Successfully saved ${data.count} registration(s) to the database!` });
-                        
-                        // Auto-dismiss success message after 5 seconds
-                        setTimeout(() => {
-                          setSaveMessage(null);
-                        }, 5000);
-                        
-                        // Reload from server so the table mirrors DB
-                        try {
-                          const regsKey = `registrations_${lgaCode}_${schoolCode}`;
-                          const counterKey = `studentCounter_${lgaCode}_${schoolCode}`;
-                          localStorage.removeItem(regsKey);
-                          localStorage.removeItem(counterKey);
-                        } catch {}
-                        await loadRegistrationsFromServer();
-                      } catch (error) {
-                        console.error('Save error:', error);
-                        setSaveMessage({ type: 'error', text: 'An error occurred while saving. Please try again.' });
-                      } finally {
-                        setIsSaving(false);
-                      }
-                    }}
+                    onClick={() => setShowFinishConfirmModal(true)}
                     disabled={isSaving}
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? 'Saving...' : 'finish registeration'}
+                    {isSaving ? 'Finalizing...' : 'Finish Registration'}
                   </Button>
                   <Button variant="outline" onClick={handlePrint} disabled={!registrations.length}>
                     <Printer className="h-4 w-4 mr-2" />
@@ -1240,7 +1380,14 @@ const SchoolRegistration = () => {
                               )}
                             </TableCell>
                             <TableCell>
-                              <div className="font-mono text-sm font-semibold">{reg.studentNumber}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-mono text-sm font-semibold">{reg.studentNumber}</div>
+                                {reg.isLateRegistration && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
+                                    LATE
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               {isEditing ? (
@@ -1265,7 +1412,7 @@ const SchoolRegistration = () => {
                                   />
                                 </div>
                               ) : (
-                                <div className="font-medium">{reg.firstname} {reg.othername} {reg.lastname}</div>
+                                <div className="font-medium">{reg.lastname} {reg.othername} {reg.firstname}</div>
                               )}
                             </TableCell>
                             <TableCell>
@@ -1586,6 +1733,52 @@ const SchoolRegistration = () => {
           )}
         </div>
       </main>
+
+      {/* Finish Registration Confirmation Modal - Minimalist Design */}
+      {showFinishConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-sm mx-4 overflow-hidden border border-gray-100">
+            <div className="p-6">
+              {/* Header */}
+              <div className="text-center mb-4">
+                <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-3" />
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Finalize Registration
+                </h3>
+              </div>
+
+              {/* Content */}
+              <div className="space-y-4 mb-6">
+                <p className="text-gray-600 text-center">
+                  This will finalize the current registration batch.
+                </p>
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <p className="text-sm text-blue-700 text-center">
+                    <span className="font-medium">Note:</span> New registrations after this will be marked as <strong>LATE</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowFinishConfirmModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  onClick={handleFinishRegistration}
+                >
+                  Confirm
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

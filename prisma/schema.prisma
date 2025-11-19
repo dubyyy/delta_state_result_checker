@@ -80,6 +80,8 @@ model School {
   schoolCode           String
   schoolName           String
   password             String
+  accessPin            String?
+  registrationOpen     Boolean               @default(true)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   studentRegistrations StudentRegistration[]
@@ -110,8 +112,24 @@ model StudentRegistration {
   religiousTerm1  String?
   religiousTerm2  String?
   religiousTerm3  String?
+  lateRegistration Boolean @default(false)
+  prcd            Int     @default(1)
+  year            String  @default("2025/2026")
   schoolId        String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model AccessPin {
+  id         String   @id @default(cuid())
+  pin        String   @unique
+  isActive   Boolean  @default(true)
+  usageCount Int      @default(0)
+  ownerLgaCode    String?
+  ownerSchoolCode String?
+  ownerSchoolName String?
+  claimedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

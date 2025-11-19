@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getLGAName } from "@/lib/lga-mapping";
+import { getLGAName, getLGACode } from "@/lib/lga-mapping";
 
 export async function GET(request: Request) {
   try {
@@ -38,9 +38,13 @@ export async function GET(request: Request) {
     
     // Filter by LGA
     if (lga && lga !== "all") {
-      where.school = {
-        lgaCode: lga,
-      };
+      // Convert LGA name to code (frontend sends names, backend uses codes)
+      const lgaCode = getLGACode(lga);
+      if (lgaCode) {
+        where.school = {
+          lgaCode: lgaCode,
+        };
+      }
     }
     
     // Filter by school code
@@ -70,6 +74,7 @@ export async function GET(request: Request) {
     // Transform data for frontend
     const transformedStudents = students.map(student => ({
       id: student.id,
+      accCode: student.accCode,
       studentNumber: student.studentNumber,
       firstname: student.firstname,
       othername: student.othername,
@@ -98,6 +103,10 @@ export async function GET(request: Request) {
       religiousTerm1: student.religiousTerm1,
       religiousTerm2: student.religiousTerm2,
       religiousTerm3: student.religiousTerm3,
+      
+      // Year and PRCD
+      prcd: student.prcd,
+      year: student.year,
       
       // Additional info for filters
       lga: getLGAName(student.school.lgaCode),

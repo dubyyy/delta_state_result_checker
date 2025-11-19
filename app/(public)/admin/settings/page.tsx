@@ -1,13 +1,102 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+
+interface School {
+  id: string;
+  lgaCode: string;
+  schoolCode: string;
+  schoolName: string;
+  registrationOpen: boolean;
+}
 
 export default function Settings() {
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [globalRegistrationOpen, setGlobalRegistrationOpen] = useState(true);
+  const [togglingGlobal, setTogglingGlobal] = useState(false);
+
+  useEffect(() => {
+    fetchSchools();
+  }, []);
+
+  const fetchSchools = async () => {
+    try {
+      const response = await fetch('/api/admin/toggle-registration');
+      if (response.ok) {
+        const data = await response.json();
+        setSchools(data.schools || []);
+        // Set global state based on if all schools are open
+        const allOpen = data.schools.every((s: School) => s.registrationOpen);
+        setGlobalRegistrationOpen(allOpen);
+      }
+    } catch (error) {
+      console.error('Failed to fetch schools:', error);
+      toast.error('Failed to load registration status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGlobalToggle = async (checked: boolean) => {
+    setTogglingGlobal(true);
+    try {
+      const response = await fetch('/api/admin/toggle-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toggleAll: true, registrationOpen: checked }),
+      });
+
+      if (response.ok) {
+        setGlobalRegistrationOpen(checked);
+        await fetchSchools(); // Refresh the list
+        toast.success(
+          checked
+            ? 'Registration opened for all schools'
+            : 'Registration closed for all schools. New students will be marked as LATE.'
+        );
+      } else {
+        toast.error('Failed to toggle registration status');
+      }
+    } catch (error) {
+      console.error('Error toggling registration:', error);
+      toast.error('An error occurred');
+    } finally {
+      setTogglingGlobal(false);
+    }
+  };
+
+  const handleSchoolToggle = async (schoolId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch('/api/admin/toggle-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schoolId, registrationOpen: !currentStatus }),
+      });
+
+      if (response.ok) {
+        await fetchSchools(); // Refresh the list
+        toast.success(
+          !currentStatus
+            ? 'Registration opened for school'
+            : 'Registration closed. New students will be marked as LATE.'
+        );
+      } else {
+        toast.error('Failed to toggle registration status');
+      }
+    } catch (error) {
+      console.error('Error toggling registration:', error);
+      toast.error('An error occurred');
+    }
+  };
+
   const handleSave = () => {
     toast.success("Settings saved successfully");
   };
@@ -23,36 +112,71 @@ export default function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Registration Settings</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Registration Control</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Control global registration settings for the system
+            Control student registration system-wide. When OFF, new students are automatically marked as LATE registrations.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6">
-          <div className="flex items-start sm:items-center justify-between gap-3">
-            <div className="space-y-0.5 flex-1">
-              <Label className="text-sm sm:text-base">Global Registration</Label>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Enable or disable student registration system-wide
-              </p>
+          {/* Global Toggle */}
+          <div className="p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <Label className="text-base sm:text-lg font-semibold">Global Registration Status</Label>
+                  {togglingGlobal && <Loader2 className="h-4 w-4 animate-spin" />}
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {globalRegistrationOpen 
+                    ? 'Registration is currently OPEN for all schools'
+                    : 'Registration is currently CLOSED for all schools. New students will be marked as LATE.'}
+                </p>
+              </div>
+              <Switch 
+                checked={globalRegistrationOpen}
+                onCheckedChange={handleGlobalToggle}
+                disabled={togglingGlobal}
+                className="shrink-0" 
+              />
             </div>
-            <Switch defaultChecked className="shrink-0" />
           </div>
 
-          <div className="flex items-start sm:items-center justify-between gap-3">
-            <div className="space-y-0.5 flex-1">
-              <Label className="text-sm sm:text-base">Auto-approve Registrations</Label>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Automatically approve new student registrations
-              </p>
+          {/* Individual School Status */}
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-            <Switch className="shrink-0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="max-students" className="text-sm sm:text-base">Maximum Students per School</Label>
-            <Input id="max-students" type="number" defaultValue="500" className="text-sm sm:text-base" />
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Individual School Controls</Label>
+              <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+                {schools.map((school) => (
+                  <div key={school.id} className="p-3 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{school.schoolName}</p>
+                          {school.registrationOpen ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          LGA: {school.lgaCode} | Code: {school.schoolCode}
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={school.registrationOpen}
+                        onCheckedChange={() => handleSchoolToggle(school.id, school.registrationOpen)}
+                        className="shrink-0"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

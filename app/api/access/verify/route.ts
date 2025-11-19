@@ -39,56 +39,65 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if school exists in database with the access PIN
+    // Verify the access PIN against the PIN pool
+    const validPin = await prisma.accessPin.findFirst({
+      where: {
+        pin: accessPin,
+        isActive: true,
+      },
+    });
+
+    if (!validPin) {
+      return NextResponse.json(
+        { error: 'Invalid or inactive access PIN. Please check your PIN and try again.' },
+        { status: 401 }
+      );
+    }
+
+    // Check if PIN is already claimed by another school
+    if (validPin.ownerLgaCode && validPin.ownerSchoolCode) {
+      // PIN is claimed - verify it belongs to this school
+      if (validPin.ownerLgaCode !== lgaCode || validPin.ownerSchoolCode !== schoolCode) {
+        return NextResponse.json(
+          { error: 'This PIN is already registered to another school. Please use a different PIN or contact the administrator.' },
+          { status: 403 }
+        );
+      }
+      // PIN belongs to this school - increment usage count
+      await prisma.accessPin.update({
+        where: { id: validPin.id },
+        data: { usageCount: { increment: 1 } },
+      });
+    } else {
+      // PIN is unclaimed - claim it for this school
+      await prisma.accessPin.update({
+        where: { id: validPin.id },
+        data: {
+          ownerLgaCode: lgaCode,
+          ownerSchoolCode: schoolCode,
+          ownerSchoolName: schoolData.schName,
+          claimedAt: new Date(),
+          usageCount: 1,
+        },
+      });
+    }
+
+    // Check if school exists in database (optional - for registration tracking)
     const school = await prisma.school.findFirst({
       where: {
         lgaCode,
         schoolCode,
       },
     });
-
-    // If school doesn't exist in database, allow access with any PIN
-    // This allows schools to access before they register
-    if (!school) {
-      // Generate a temporary token for unregistered schools
-      const token = jwt.sign(
-        {
-          lgaCode,
-          schoolCode,
-          schoolName: schoolData.schName,
-          isRegistered: false,
-        },
-        process.env.JWT_SECRET || 'your-secret-key-change-this',
-        { expiresIn: '7d' }
-      );
-
-      return NextResponse.json(
-        {
-          message: 'Access granted',
-          token,
-          school: {
-            lgaCode,
-            schoolCode,
-            schoolName: schoolData.schName,
-            isRegistered: false,
-          },
-        },
-        { status: 200 }
-      );
-    }
-
-    // For registered schools, verify the access PIN
-    // You can implement PIN verification logic here
-    // For now, we'll allow any PIN for registered schools too
     
     // Generate JWT token
     const token = jwt.sign(
       {
-        schoolId: school.id,
-        lgaCode: school.lgaCode,
-        schoolCode: school.schoolCode,
-        schoolName: school.schoolName,
-        isRegistered: true,
+        schoolId: school?.id,
+        lgaCode,
+        schoolCode,
+        schoolName: schoolData.schName,
+        isRegistered: !!school,
       },
       process.env.JWT_SECRET || 'your-secret-key-change-this',
       { expiresIn: '7d' }
@@ -99,11 +108,11 @@ export async function POST(req: NextRequest) {
         message: 'Access granted',
         token,
         school: {
-          id: school.id,
-          lgaCode: school.lgaCode,
-          schoolCode: school.schoolCode,
-          schoolName: school.schoolName,
-          isRegistered: true,
+          id: school?.id,
+          lgaCode,
+          schoolCode,
+          schoolName: schoolData.schName,
+          isRegistered: !!school,
         },
       },
       { status: 200 }

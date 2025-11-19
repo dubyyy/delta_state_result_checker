@@ -10,7 +10,9 @@ import {
   School, 
   Settings, 
   LogOut,
-  KeyRound
+  KeyRound,
+  FileJson,
+  Key
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -29,6 +31,16 @@ const navItems = [
     title: "Schools",
     href: "/admin/schools",
     icon: School,
+  },
+  {
+    title: "Access PINs",
+    href: "/admin/access-pins",
+    icon: Key,
+  },
+  {
+    title: "Data.json Manager",
+    href: "/admin/data-json",
+    icon: FileJson,
   },
   {
     title: "Reset Password",

@@ -29,7 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, LockKeyhole } from "lucide-react";
+import { Plus, Edit, Trash2, LockKeyhole, Key, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -51,8 +51,10 @@ interface School {
   name: string;
   code: string;
   lga: string;
+  lgaCode: string;
   studentCount: number;
   status: string;
+  accessPin: string | null;
   createdAt: string;
 }
 
@@ -140,6 +142,62 @@ export default function Schools() {
     toast.success("Registration status updated");
   };
 
+  const handleGeneratePin = async (schoolId: string) => {
+    try {
+      const response = await fetch("/api/admin/schools/generate-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSchools(
+          schools.map((school) =>
+            school.id === schoolId
+              ? { ...school, accessPin: data.accessPin }
+              : school
+          )
+        );
+        toast.success(`Access PIN generated: ${data.accessPin}`);
+      } else {
+        toast.error("Failed to generate PIN");
+      }
+    } catch (error) {
+      console.error("Failed to generate PIN:", error);
+      toast.error("Failed to generate PIN");
+    }
+  };
+
+  const handleCopyPin = (pin: string, schoolName: string) => {
+    navigator.clipboard.writeText(pin);
+    toast.success(`PIN copied for ${schoolName}`);
+  };
+
+  const handleBulkGeneratePins = async () => {
+    try {
+      const response = await fetch("/api/admin/schools/bulk-generate-pins", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.count > 0) {
+          // Refresh schools to show new PINs
+          await fetchSchools();
+          toast.success(data.message);
+        } else {
+          toast.info(data.message);
+        }
+      } else {
+        toast.error("Failed to generate PINs");
+      }
+    } catch (error) {
+      console.error("Failed to bulk generate PINs:", error);
+      toast.error("Failed to generate PINs");
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -163,13 +221,38 @@ export default function Schools() {
           </p>
         </div>
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              <span className="sm:inline">Add New School</span>
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                <Key className="mr-2 h-4 w-4" />
+                <span className="sm:inline">Generate All PINs</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Generate PINs for All Schools</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will generate access PINs for all schools that don't have one yet. 
+                  Schools that already have PINs will not be affected.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkGeneratePins}>
+                  Generate PINs
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                <span className="sm:inline">Add New School</span>
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New School</DialogTitle>
@@ -238,6 +321,7 @@ export default function Schools() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* TABLE SECTION */}
@@ -255,6 +339,7 @@ export default function Schools() {
                   <TableHead className="text-xs sm:text-sm">School Name</TableHead>
                   <TableHead className="text-xs sm:text-sm">School Code</TableHead>
                   <TableHead className="text-xs sm:text-sm">LGA</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Access PIN</TableHead>
                   <TableHead className="text-xs sm:text-sm">Status</TableHead>
                   <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
                 </TableRow>
@@ -269,6 +354,26 @@ export default function Schools() {
                     <TableCell className="text-xs sm:text-sm">{school.code}</TableCell>
                     <TableCell className="text-xs sm:text-sm">{school.lga}</TableCell>
 
+                    <TableCell className="text-xs sm:text-sm">
+                      {school.accessPin ? (
+                        <div className="flex items-center gap-2">
+                          <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
+                            {school.accessPin}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleCopyPin(school.accessPin!, school.name)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Not set</span>
+                      )}
+                    </TableCell>
+
                     <TableCell>
                       <Badge
                         variant={
@@ -281,9 +386,38 @@ export default function Schools() {
 
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1 sm:gap-2">
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 sm:h-9 sm:w-9">
-                          <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
+                        {/* Generate/Regenerate PIN */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant={school.accessPin ? "outline" : "default"}
+                              size="sm"
+                              className="h-8 w-8 p-0 sm:h-9 sm:w-9"
+                            >
+                              <Key className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {school.accessPin ? "Regenerate" : "Generate"} Access PIN
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {school.accessPin
+                                  ? `Are you sure you want to regenerate the access PIN for ${school.name}? The old PIN will no longer work.`
+                                  : `Generate a new access PIN for ${school.name}? This will allow the school to access the portal.`}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleGeneratePin(school.id)}
+                              >
+                                {school.accessPin ? "Regenerate" : "Generate"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
 
                         {/* Toggle Registration */}
                         <AlertDialog>

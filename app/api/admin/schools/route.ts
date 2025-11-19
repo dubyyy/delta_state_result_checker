@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { getLGAName } from "@/lib/lga-mapping";
+import { generateAccessPin } from "@/lib/generate-pin";
 
 export async function GET() {
   try {
@@ -24,8 +25,10 @@ export async function GET() {
       name: school.schoolName,
       code: school.schoolCode,
       lga: getLGAName(school.lgaCode),  // Convert code to full name
+      lgaCode: school.lgaCode,
       studentCount: school._count.studentRegistrations,
-      status: "Open", // This could be a field in the School model if needed
+      status: school.registrationOpen ? "Open" : "Closed",
+      accessPin: school.accessPin,
       createdAt: school.createdAt,
     }));
     
@@ -72,12 +75,16 @@ export async function POST(request: Request) {
     const defaultPassword = `${code.toLowerCase()}123`;
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
     
+    // Auto-generate access PIN for the new school
+    const accessPin = generateAccessPin();
+    
     const school = await prisma.school.create({
       data: {
         schoolName: name,
         schoolCode: code,
         lgaCode: lga,
         password: hashedPassword,
+        accessPin: accessPin,
       },
     });
     
@@ -85,9 +92,11 @@ export async function POST(request: Request) {
       id: school.id,
       name: school.schoolName,
       code: school.schoolCode,
-      lga: school.lgaCode,
+      lga: getLGAName(school.lgaCode),
+      lgaCode: school.lgaCode,
       studentCount: 0,
       status: "Open",
+      accessPin: school.accessPin,
       createdAt: school.createdAt,
     }, { status: 201 });
   } catch (error) {

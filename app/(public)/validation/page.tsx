@@ -856,7 +856,7 @@ const Validation = () => {
         }
         
         // Draw student information below photo
-        const fullName = `${student.lastname.toUpperCase()} ${student.firstname.toUpperCase()}`;
+        const fullName = `${student.lastname.toUpperCase()} ${student.othername.toUpperCase()} ${student.firstname.toUpperCase()}`;
         const nameY = photoY - 15;
         
         // Truncate name if too long
@@ -1227,7 +1227,7 @@ const Validation = () => {
                                 {student.passport ? (
                                   <img 
                                     src={student.passport} 
-                                    alt={`${student.firstname} ${student.lastname}`}
+                                    alt={`${student.lastname} ${student.othername} ${student.firstname}`}
                                     className="w-12 h-12 object-cover rounded-md border border-gray-300"
                                   />
                                 ) : (
@@ -1320,7 +1320,7 @@ const Validation = () => {
                   <div className="flex justify-center">
                     <img 
                       src={editFormData.passport} 
-                      alt={`${editFormData.firstname} ${editFormData.lastname}`}
+                      alt={`${editFormData.lastname} ${editFormData.othername} ${editFormData.firstname}`}
                       className="w-32 h-32 object-cover rounded-lg border-2 border-gray-300 shadow-sm"
                     />
                   </div>

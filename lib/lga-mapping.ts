@@ -36,3 +36,9 @@ export function getLGAName(code: string): string {
   // Otherwise, look up the mapping (codes are numeric strings)
   return LGA_MAPPING[code] || code;
 }
+
+export function getLGACode(name: string): string | null {
+  // Find the code by matching the LGA name
+  const entry = Object.entries(LGA_MAPPING).find(([_, lgaName]) => lgaName === name);
+  return entry ? entry[0] : null;
+}

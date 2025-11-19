@@ -97,6 +97,8 @@ export async function PATCH(
         religiousTerm1: updateData.religiousTerm1,
         religiousTerm2: updateData.religiousTerm2,
         religiousTerm3: updateData.religiousTerm3,
+        year: updateData.year || '2025/2026',
+        prcd: updateData.prcd || 1,
       },
     });
 
