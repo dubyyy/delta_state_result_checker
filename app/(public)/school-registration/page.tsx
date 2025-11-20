@@ -11,12 +11,12 @@ import Link from 'next/link';
 import schoolsData from '@/data.json';
 
 interface SchoolData {
-  lgaCode: string;
-  lCode: string;
-  schCode: string;
-  progID: string;
+  lgaCode: number;
+  lCode: number;
+  schCode: number;
+  progID: number;
   schName: string;
-  id: string;
+  id: number;
 }
 
 interface Registration {
@@ -284,7 +284,7 @@ const SchoolRegistration = () => {
     
     // Find the school data to get the actual lgaCode
     const schools = schoolsData as SchoolData[];
-    const schoolData = schools.find((s) => s.lCode === lgaCode && s.schCode === schoolCode);
+    const schoolData = schools.find((s) => s.lCode === Number(lgaCode) && s.schCode === Number(schoolCode));
     const actualLgaCode = schoolData?.lgaCode || '1';
     
     const currentYear = new Date().getFullYear();
@@ -456,7 +456,7 @@ const SchoolRegistration = () => {
     // Find the actual school data to get lgaCode
     const schools = schoolsData as SchoolData[];
     const school = schools.find(
-      (s) => s.lCode === lgaCode && s.schCode === schoolCode
+      (s) => s.lCode === Number(lgaCode) && s.schCode === Number(schoolCode)
     );
 
     if (!school) return '';
@@ -488,12 +488,12 @@ const SchoolRegistration = () => {
     regs: Registration[]
   ): Registration[] => {
     const schools = schoolsData as SchoolData[];
-    const school = schools.find((s) => s.lCode === lga && s.schCode === sch);
+    const school = schools.find((s) => s.lCode === Number(lga) && s.schCode === Number(sch));
     if (!school) return regs;
     const normalize = (s: string) => s.trim().toUpperCase();
     const uniqueSurnames = Array.from(new Set(regs.map((r) => normalize(r.lastname)))).sort((a, b) => a.localeCompare(b));
     const x = school.lgaCode;
-    const fff = school.schCode.padStart(3, '0');
+    const fff = school.schCode.toString().padStart(3, '0');
     const rankOf = (surname: string) => (uniqueSurnames.indexOf(normalize(surname)) + 1).toString().padStart(4, '0');
     return regs.map((r) => ({
       ...r,
@@ -507,11 +507,11 @@ const SchoolRegistration = () => {
     sch: string
   ): Promise<string> => {
     const schools = schoolsData as SchoolData[];
-    const school = schools.find((s) => s.lCode === lga && s.schCode === sch);
+    const school = schools.find((s) => s.lCode === Number(lga) && s.schCode === Number(sch));
     if (!school) return '';
     
     const x = school.lgaCode;
-    const fff = school.schCode.padStart(3, '0');
+    const fff = school.schCode.toString().padStart(3, '0');
     
     // Fetch ALL existing registrations from the database to find the true maximum
     try {
