@@ -11,12 +11,12 @@ import Link from 'next/link';
 import schoolsData from '@/data.json';
 
 interface SchoolData {
-  lgaCode: number;
-  lCode: number;
-  schCode: number;
-  progID: number;
+  lgaCode: string;
+  lCode: string;
+  schCode: string;
+  progID: string;
   schName: string;
-  id: number;
+  id: string;
 }
 
 interface Registration {
