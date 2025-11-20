@@ -284,7 +284,7 @@ const SchoolRegistration = () => {
     
     // Find the school data to get the actual lgaCode
     const schools = schoolsData as SchoolData[];
-    const schoolData = schools.find((s) => s.lCode === Number(lgaCode) && s.schCode === Number(schoolCode));
+    const schoolData = schools.find((s) => s.lCode === lgaCode && s.schCode === schoolCode);
     const actualLgaCode = schoolData?.lgaCode || '1';
     
     const currentYear = new Date().getFullYear();
@@ -456,7 +456,7 @@ const SchoolRegistration = () => {
     // Find the actual school data to get lgaCode
     const schools = schoolsData as SchoolData[];
     const school = schools.find(
-      (s) => s.lCode === Number(lgaCode) && s.schCode === Number(schoolCode)
+      (s) => s.lCode === lgaCode && s.schCode === schoolCode
     );
 
     if (!school) return '';
@@ -488,7 +488,7 @@ const SchoolRegistration = () => {
     regs: Registration[]
   ): Registration[] => {
     const schools = schoolsData as SchoolData[];
-    const school = schools.find((s) => s.lCode === Number(lga) && s.schCode === Number(sch));
+    const school = schools.find((s) => s.lCode === lga && s.schCode === sch);
     if (!school) return regs;
     const normalize = (s: string) => s.trim().toUpperCase();
     const uniqueSurnames = Array.from(new Set(regs.map((r) => normalize(r.lastname)))).sort((a, b) => a.localeCompare(b));
@@ -507,7 +507,7 @@ const SchoolRegistration = () => {
     sch: string
   ): Promise<string> => {
     const schools = schoolsData as SchoolData[];
-    const school = schools.find((s) => s.lCode === Number(lga) && s.schCode === Number(sch));
+    const school = schools.find((s) => s.lCode === lga && s.schCode === sch);
     if (!school) return '';
     
     const x = school.lgaCode;
