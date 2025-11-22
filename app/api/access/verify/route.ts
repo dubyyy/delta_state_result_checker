@@ -6,12 +6,12 @@ import schoolsData from '@/data.json';
 const prisma = new PrismaClient();
 
 interface SchoolData {
-  lgaCode: number;
-  lCode: number;
-  schCode: number;
-  progID: number;
+  lgaCode: string;
+  lCode: string;
+  schCode: string;
+  progID: string;
   schName: string;
-  id: number;
+  id: string;
 }
 
 export async function POST(req: NextRequest) {
