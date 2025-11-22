@@ -15,7 +15,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
   const services = [
-    
+    {
+      title: "Check Result",
+      description: "View and verify examination results",
+      icon: FileCheck,
+      href: "/check-result",
+      variant: "primary" as const,
+    },
     {
       title: "Validation List",
       description: "Verify and validate student registration records",
