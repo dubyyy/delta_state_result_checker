@@ -1,7 +1,7 @@
 "use client";
 
-import { Building2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const PublicHeader = () => {
   return (
@@ -9,11 +9,14 @@ const PublicHeader = () => {
       <div className="container mx-auto px-4 py-4 md:py-5">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 md:gap-4 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
-              <div className="relative bg-white/10 p-2 md:p-3 rounded-full backdrop-blur-sm border border-white/20 group-hover:bg-white/20 transition-all duration-300">
-                <Building2 className="h-7 w-7 md:h-9 md:w-9" />
-              </div>
+            <div className="relative h-16 w-12 md:h-20 md:w-16 lg:h-26 lg:w-16">
+              <Image
+                src="/delta-logo.png"
+                alt="Delta State Logo"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
             <div>
               <h1 className="text-xl md:text-2xl lg:text-3xl font-bold leading-tight tracking-tight">

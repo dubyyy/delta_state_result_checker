@@ -1,14 +1,9 @@
 import ServiceCard from "./components/ServiceCard";
 import PublicHeader from "./components/PublicHeader";
 import {
-  FileCheck,
-  GraduationCap,
-  UserPlus,
-  ClipboardList,
   School,
-  FileText,
   AlertCircle,
-  Lock,
+  ClipboardCheck,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -18,7 +13,7 @@ const Index = () => {
     {
       title: "Check Primary Result",
       description: "View and verify primary examination results",
-      icon: FileCheck,
+      icon: ClipboardCheck,
       href: "/primary-result",
       variant: "primary" as const,
     },
@@ -29,9 +24,9 @@ const Index = () => {
     {
       title: "School Portal Access",
       description: "Access validation, registration and other services",
-      icon: Lock,
+      icon: School,
       href: "/access",
-      variant: "secondary" as const,
+      variant: "primary" as const,
     },
   ];
 
