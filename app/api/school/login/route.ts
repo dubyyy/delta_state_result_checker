@@ -7,12 +7,12 @@ import schoolsData from '@/data.json';
 const prisma = new PrismaClient();
 
 interface SchoolData {
-  lgaCode: number;
-  lCode: number;
-  schCode: number;
-  progID: number;
+  lgaCode: string;
+  lCode: string;
+  schCode: string;
+  progID: string;
   schName: string;
-  id: number;
+  id: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     // Validate against data.json
     const schools = schoolsData as SchoolData[];
     const schoolData = schools.find(
-      (s) => s.lCode === Number(lgaCode) && s.schCode === Number(schoolCode)
+      (s) => s.lCode === lgaCode && s.schCode === schoolCode
     );
 
     if (!schoolData) {
