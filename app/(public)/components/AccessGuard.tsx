@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getCookie } from "@/lib/cookies";
 
 export default function AccessGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -9,14 +10,25 @@ export default function AccessGuard({ children }: { children: React.ReactNode })
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Check if user has access token
-    const accessToken = localStorage.getItem("accessToken");
+    // Check if user has access token in cookies or localStorage
+    const cookieToken = getCookie('accessToken');
+    const localToken = localStorage.getItem("accessToken");
+    const accessToken = cookieToken || localToken;
     
     if (!accessToken) {
       // Redirect to access page if no token
       router.push("/access");
     } else {
       setIsAuthenticated(true);
+      
+      // Sync: if we have cookie but not localStorage, update localStorage
+      if (cookieToken && !localToken) {
+        localStorage.setItem("accessToken", cookieToken);
+        const schoolInfo = getCookie('schoolInfo');
+        if (schoolInfo) {
+          localStorage.setItem("schoolInfo", schoolInfo);
+        }
+      }
     }
     
     setIsChecking(false);

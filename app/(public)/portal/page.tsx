@@ -1,52 +1,48 @@
-import ServiceCard from "./components/ServiceCard";
-import PublicHeader from "./components/PublicHeader";
+"use client";
+
+import ServiceCard from "../components/ServiceCard";
+import AccessGuard from "../components/AccessGuard";
+import Header from "../components/Header";
 import {
-  FileCheck,
-  GraduationCap,
-  UserPlus,
   ClipboardList,
   School,
   FileText,
   AlertCircle,
-  Lock,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-
-const Index = () => {
-  const publicServices = [
-    {
-      title: "Check Primary Result",
-      description: "View and verify primary examination results",
-      icon: FileCheck,
-      href: "/primary-result",
-      variant: "primary" as const,
-    },
-   
-  ];
-
+const PortalPage = () => {
   const portalServices = [
     {
-      title: "School Portal Access",
-      description: "Access validation, registration and other services",
-      icon: Lock,
-      href: "/access",
-      variant: "secondary" as const,
+      title: "Validation List",
+      description: "Verify and validate student registration records",
+      icon: ClipboardList,
+      href: "/validation",
+      variant: "primary" as const,
     },
+    {
+      title: "Primary School Registration",
+      description: "Register new students for primary education",
+      icon: School,
+      href: "/school-registration",
+      variant: "primary" as const,
+    },
+  
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <PublicHeader />
+    <AccessGuard>
+      <div className="min-h-screen flex flex-col">
+        <Header />
         
         <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Welcome to the Education Portal
+                School Portal
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Check examination results or access the school portal
+                Access validation, registration services, and school management tools
               </p>
             </div>
 
@@ -65,21 +61,16 @@ const Index = () => {
               </AlertDescription>
             </Alert>
 
-            <div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {publicServices.map((service, index) => (
-                  <ServiceCard key={index} {...service} />
-                ))}
-                {portalServices.map((service, index) => (
-                  <ServiceCard key={index} {...service} />
-                ))}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {portalServices.map((service, index) => (
+                <ServiceCard key={index} {...service} />
+              ))}
             </div>
           </div>
         </main>
       </div>
+    </AccessGuard>
   );
 };
 
-export default Index;
+export default PortalPage;

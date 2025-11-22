@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { getLGAName } from "@/lib/lga-mapping";
+import { setCookie, getCookie } from "@/lib/cookies";
 
 export default function AccessPage() {
   const router = useRouter();
@@ -19,6 +20,18 @@ export default function AccessPage() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const accessToken = getCookie('accessToken');
+    if (accessToken) {
+      // User is already authenticated, redirect to portal
+      router.push("/portal");
+    } else {
+      setIsChecking(false);
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,17 +55,31 @@ export default function AccessPage() {
         return;
       }
 
-      // Store access token in localStorage
+      // Store access token in both cookies and localStorage
+      // Cookies for persistence, localStorage for backward compatibility
+      setCookie('accessToken', data.token, 7); // 7 days
+      setCookie('schoolInfo', JSON.stringify(data.school), 7);
       localStorage.setItem("accessToken", data.token);
       localStorage.setItem("schoolInfo", JSON.stringify(data.school));
 
-      // Redirect to home page
-      router.push("/");
+      // Redirect to portal page
+      router.push("/portal");
     } catch (err) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking authentication
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-lg text-muted-foreground">
+          Loading...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">

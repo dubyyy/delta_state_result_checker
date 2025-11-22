@@ -12,7 +12,8 @@ import {
   LogOut,
   KeyRound,
   FileJson,
-  Key
+  Key,
+  ClipboardList
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -36,6 +37,11 @@ const navItems = [
     title: "Access PINs",
     href: "/admin/access-pins",
     icon: Key,
+  },
+  {
+    title: "Add Result",
+    href: "/admin/add-result",
+    icon: ClipboardList,
   },
   {
     title: "Data.json Manager",

@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { deleteAllAuthCookies } from "@/lib/cookies";
 
 export default function LogoutButton() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Clear access token and school info
+    // Clear access token and school info from both cookies and localStorage
+    deleteAllAuthCookies();
     localStorage.removeItem("accessToken");
     localStorage.removeItem("schoolInfo");
     
