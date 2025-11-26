@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, Edit2, X, Trash2, CheckCircle2, AlertCircle, Printer } from "lucide-react";
+import { ArrowLeft, Upload, Edit2, X, Trash2, CheckCircle2, AlertCircle, Printer, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import schoolsData from '@/data.json';
