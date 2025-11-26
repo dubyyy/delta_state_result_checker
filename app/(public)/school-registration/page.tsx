@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, Edit2, Save, X, Trash2, CheckCircle2, AlertCircle, Printer } from "lucide-react";
+import { ArrowLeft, Upload, Edit2, X, Trash2, CheckCircle2, AlertCircle, Printer } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import schoolsData from '@/data.json';
@@ -28,10 +28,10 @@ interface Registration {
   gender: string;
   schoolType: string;
   passport: string | null;
-  english: { term1: string; term2: string; term3: string };
-  arithmetic: { term1: string; term2: string; term3: string };
-  general: { term1: string; term2: string; term3: string };
-  religious: { term1: string; term2: string; term3: string; type: string };
+  english: { year1: string; year2: string; year3: string };
+  arithmetic: { year1: string; year2: string; year3: string };
+  general: { year1: string; year2: string; year3: string };
+  religious: { year1: string; year2: string; year3: string; type: string };
   isLateRegistration?: boolean;
   year?: string;
   prcd?: number;
@@ -86,18 +86,18 @@ const SchoolRegistration = () => {
   const [lastname, setLastname] = useState<string>("");
   const [firstname, setFirstname] = useState<string>("");
   const [othername, setOthername] = useState<string>("");
-  const [englishTerm1, setEnglishTerm1] = useState<string>("");
-  const [englishTerm2, setEnglishTerm2] = useState<string>("");
-  const [englishTerm3, setEnglishTerm3] = useState<string>("");
-  const [arithmeticTerm1, setArithmeticTerm1] = useState<string>("");
-  const [arithmeticTerm2, setArithmeticTerm2] = useState<string>("");
-  const [arithmeticTerm3, setArithmeticTerm3] = useState<string>("");
-  const [generalTerm1, setGeneralTerm1] = useState<string>("");
-  const [generalTerm2, setGeneralTerm2] = useState<string>("");
-  const [generalTerm3, setGeneralTerm3] = useState<string>("");
-  const [religiousTerm1, setReligiousTerm1] = useState<string>("");
-  const [religiousTerm2, setReligiousTerm2] = useState<string>("");
-  const [religiousTerm3, setReligiousTerm3] = useState<string>("");
+  const [englishYear1, setEnglishYear1] = useState<string>("");
+  const [englishYear2, setEnglishYear2] = useState<string>("");
+  const [englishYear3, setEnglishYear3] = useState<string>("");
+  const [arithmeticYear1, setArithmeticYear1] = useState<string>("");
+  const [arithmeticYear2, setArithmeticYear2] = useState<string>("");
+  const [arithmeticYear3, setArithmeticYear3] = useState<string>("");
+  const [generalYear1, setGeneralYear1] = useState<string>("");
+  const [generalYear2, setGeneralYear2] = useState<string>("");
+  const [generalYear3, setGeneralYear3] = useState<string>("");
+  const [religiousYear1, setReligiousYear1] = useState<string>("");
+  const [religiousYear2, setReligiousYear2] = useState<string>("");
+  const [religiousYear3, setReligiousYear3] = useState<string>("");
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editData, setEditData] = useState<Registration | null>(null);
@@ -184,10 +184,10 @@ const SchoolRegistration = () => {
         gender: r.gender,
         schoolType: r.schoolType,
         passport: r.passport || null,
-        english: { term1: r.englishTerm1, term2: r.englishTerm2, term3: r.englishTerm3 },
-        arithmetic: { term1: r.arithmeticTerm1, term2: r.arithmeticTerm2, term3: r.arithmeticTerm3 },
-        general: { term1: r.generalTerm1, term2: r.generalTerm2, term3: r.generalTerm3 },
-        religious: { type: r.religiousType, term1: r.religiousTerm1, term2: r.religiousTerm2, term3: r.religiousTerm3 },
+        english: { year1: r.englishYear1, year2: r.englishYear2, year3: r.englishYear3 },
+        arithmetic: { year1: r.arithmeticYear1, year2: r.arithmeticYear2, year3: r.arithmeticYear3 },
+        general: { year1: r.generalYear1, year2: r.generalYear2, year3: r.generalYear3 },
+        religious: { type: r.religiousType, year1: r.religiousYear1, year2: r.religiousYear2, year3: r.religiousYear3 },
         isLateRegistration: r.lateRegistration || false,
       }));
       setRegistrations(mapped);
@@ -401,10 +401,10 @@ const SchoolRegistration = () => {
               gender: r.gender,
               schoolType: r.schoolType,
               passport: r.passport || null,
-              english: { term1: r.englishTerm1, term2: r.englishTerm2, term3: r.englishTerm3 },
-              arithmetic: { term1: r.arithmeticTerm1, term2: r.arithmeticTerm2, term3: r.arithmeticTerm3 },
-              general: { term1: r.generalTerm1, term2: r.generalTerm2, term3: r.generalTerm3 },
-              religious: { type: r.religiousType, term1: r.religiousTerm1, term2: r.religiousTerm2, term3: r.religiousTerm3 },
+              english: { year1: r.englishYear1, year2: r.englishYear2, year3: r.englishYear3 },
+              arithmetic: { year1: r.arithmeticYear1, year2: r.arithmeticYear2, year3: r.arithmeticYear3 },
+              general: { year1: r.generalYear1, year2: r.generalYear2, year3: r.generalYear3 },
+              religious: { type: r.religiousType, year1: r.religiousYear1, year2: r.religiousYear2, year3: r.religiousYear3 },
               isLateRegistration: r.lateRegistration || false,
             }));
             // Merge: existing + new toSave (may not be in existing yet)
@@ -801,10 +801,10 @@ const SchoolRegistration = () => {
                     schoolType !== "" &&
                     religiousType !== "" &&
                     selectedImage !== null &&
-                    englishTerm1 !== "" && englishTerm2 !== "" && englishTerm3 !== "" &&
-                    arithmeticTerm1 !== "" && arithmeticTerm2 !== "" && arithmeticTerm3 !== "" &&
-                    generalTerm1 !== "" && generalTerm2 !== "" && generalTerm3 !== "" &&
-                    religiousTerm1 !== "" && religiousTerm2 !== "" && religiousTerm3 !== "";
+                    englishYear1 !== "" && englishYear2 !== "" && englishYear3 !== "" &&
+                    arithmeticYear1 !== "" && arithmeticYear2 !== "" && arithmeticYear3 !== "" &&
+                    generalYear1 !== "" && generalYear2 !== "" && generalYear3 !== "" &&
+                    religiousYear1 !== "" && religiousYear2 !== "" && religiousYear3 !== "";
 
                   if (!isFormComplete) {
                     return;
@@ -821,24 +821,24 @@ const SchoolRegistration = () => {
                     schoolType: schoolType,
                     passport: selectedImage,
                     english: {
-                      term1: formData.get('english-term1') as string || '-',
-                      term2: formData.get('english-term2') as string || '-',
-                      term3: formData.get('english-term3') as string || '-',
+                      year1: formData.get('english-year1') as string || '-',
+                      year2: formData.get('english-year2') as string || '-',
+                      year3: formData.get('english-year3') as string || '-',
                     },
                     arithmetic: {
-                      term1: formData.get('arithmetic-term1') as string || '-',
-                      term2: formData.get('arithmetic-term2') as string || '-',
-                      term3: formData.get('arithmetic-term3') as string || '-',
+                      year1: formData.get('arithmetic-year1') as string || '-',
+                      year2: formData.get('arithmetic-year2') as string || '-',
+                      year3: formData.get('arithmetic-year3') as string || '-',
                     },
                     general: {
-                      term1: formData.get('general-term1') as string || '-',
-                      term2: formData.get('general-term2') as string || '-',
-                      term3: formData.get('general-term3') as string || '-',
+                      year1: formData.get('general-year1') as string || '-',
+                      year2: formData.get('general-year2') as string || '-',
+                      year3: formData.get('general-year3') as string || '-',
                     },
                     religious: {
-                      term1: formData.get('religious-term1') as string || '-',
-                      term2: formData.get('religious-term2') as string || '-',
-                      term3: formData.get('religious-term3') as string || '-',
+                      year1: formData.get('religious-year1') as string || '-',
+                      year2: formData.get('religious-year2') as string || '-',
+                      year3: formData.get('religious-year3') as string || '-',
                       type: religiousType,
                     },
                     isLateRegistration: isLateRegistrationMode || !registrationOpen,
@@ -880,18 +880,18 @@ const SchoolRegistration = () => {
                   setLastname("");
                   setFirstname("");
                   setOthername("");
-                  setEnglishTerm1("");
-                  setEnglishTerm2("");
-                  setEnglishTerm3("");
-                  setArithmeticTerm1("");
-                  setArithmeticTerm2("");
-                  setArithmeticTerm3("");
-                  setGeneralTerm1("");
-                  setGeneralTerm2("");
-                  setGeneralTerm3("");
-                  setReligiousTerm1("");
-                  setReligiousTerm2("");
-                  setReligiousTerm3("");
+                  setEnglishYear1("");
+                  setEnglishYear2("");
+                  setEnglishYear3("");
+                  setArithmeticYear1("");
+                  setArithmeticYear2("");
+                  setArithmeticYear3("");
+                  setGeneralYear1("");
+                  setGeneralYear2("");
+                  setGeneralYear3("");
+                  setReligiousYear1("");
+                  setReligiousYear2("");
+                  setReligiousYear3("");
                 }}>
                 <div className="space-y-2">
                   <Label htmlFor="lastname">Lastname/Surname</Label>
@@ -988,7 +988,7 @@ const SchoolRegistration = () => {
                 <div className="space-y-6 pt-6 border-t">
                   <div>
                     <h3 className="text-lg font-semibold">Continuous Assessment</h3>
-                    <p className="text-sm text-muted-foreground">Enter assessment scores for each term (Optional)</p>
+                    <p className="text-sm text-muted-foreground">Enter assessment scores for each year (Optional)</p>
                   </div>
                   
                   {/* English */}
@@ -996,48 +996,48 @@ const SchoolRegistration = () => {
                     <Label className="text-base font-medium">English</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="english-term1" className="text-sm">First Term</Label>
+                        <Label htmlFor="english-year1" className="text-sm">First Year</Label>
                         <Input
-                          id="english-term1"
-                          name="english-term1"
+                          id="english-year1"
+                          name="english-year1"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={englishTerm1}
-                          onChange={(e) => setEnglishTerm1(e.target.value)}
+                          value={englishYear1}
+                          onChange={(e) => setEnglishYear1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="english-term2" className="text-sm">Second Term</Label>
+                        <Label htmlFor="english-year2" className="text-sm">Second Year</Label>
                         <Input
-                          id="english-term2"
-                          name="english-term2"
+                          id="english-year2"
+                          name="english-year2"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={englishTerm2}
-                          onChange={(e) => setEnglishTerm2(e.target.value)}
+                          value={englishYear2}
+                          onChange={(e) => setEnglishYear2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="english-term3" className="text-sm">Third Term</Label>
+                        <Label htmlFor="english-year3" className="text-sm">Third Year</Label>
                         <Input
-                          id="english-term3"
-                          name="english-term3"
+                          id="english-year3"
+                          name="english-year3"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={englishTerm3}
-                          onChange={(e) => setEnglishTerm3(e.target.value)}
+                          value={englishYear3}
+                          onChange={(e) => setEnglishYear3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -1048,48 +1048,48 @@ const SchoolRegistration = () => {
                     <Label className="text-base font-medium">Arithmetic</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="arithmetic-term1" className="text-sm">First Term</Label>
+                        <Label htmlFor="arithmetic-year1" className="text-sm">First Year</Label>
                         <Input
-                          id="arithmetic-term1"
-                          name="arithmetic-term1"
+                          id="arithmetic-year1"
+                          name="arithmetic-year1"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={arithmeticTerm1}
-                          onChange={(e) => setArithmeticTerm1(e.target.value)}
+                          value={arithmeticYear1}
+                          onChange={(e) => setArithmeticYear1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="arithmetic-term2" className="text-sm">Second Term</Label>
+                        <Label htmlFor="arithmetic-year2" className="text-sm">Second Year</Label>
                         <Input
-                          id="arithmetic-term2"
-                          name="arithmetic-term2"
+                          id="arithmetic-year2"
+                          name="arithmetic-year2"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={arithmeticTerm2}
-                          onChange={(e) => setArithmeticTerm2(e.target.value)}
+                          value={arithmeticYear2}
+                          onChange={(e) => setArithmeticYear2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="arithmetic-term3" className="text-sm">Third Term</Label>
+                        <Label htmlFor="arithmetic-year3" className="text-sm">Third Year</Label>
                         <Input
-                          id="arithmetic-term3"
-                          name="arithmetic-term3"
+                          id="arithmetic-year3"
+                          name="arithmetic-year3"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={arithmeticTerm3}
-                          onChange={(e) => setArithmeticTerm3(e.target.value)}
+                          value={arithmeticYear3}
+                          onChange={(e) => setArithmeticYear3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -1100,48 +1100,48 @@ const SchoolRegistration = () => {
                     <Label className="text-base font-medium">General Paper</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="general-term1" className="text-sm">First Term</Label>
+                        <Label htmlFor="general-year1" className="text-sm">First Year</Label>
                         <Input
-                          id="general-term1"
-                          name="general-term1"
+                          id="general-year1"
+                          name="general-year1"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={generalTerm1}
-                          onChange={(e) => setGeneralTerm1(e.target.value)}
+                          value={generalYear1}
+                          onChange={(e) => setGeneralYear1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="general-term2" className="text-sm">Second Term</Label>
+                        <Label htmlFor="general-year2" className="text-sm">Second Year</Label>
                         <Input
-                          id="general-term2"
-                          name="general-term2"
+                          id="general-year2"
+                          name="general-year2"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={generalTerm2}
-                          onChange={(e) => setGeneralTerm2(e.target.value)}
+                          value={generalYear2}
+                          onChange={(e) => setGeneralYear2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="general-term3" className="text-sm">Third Term</Label>
+                        <Label htmlFor="general-year3" className="text-sm">Third Year</Label>
                         <Input
-                          id="general-term3"
-                          name="general-term3"
+                          id="general-year3"
+                          name="general-year3"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={generalTerm3}
-                          onChange={(e) => setGeneralTerm3(e.target.value)}
+                          value={generalYear3}
+                          onChange={(e) => setGeneralYear3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -1163,48 +1163,48 @@ const SchoolRegistration = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="religious-term1" className="text-sm">First Term</Label>
+                        <Label htmlFor="religious-year1" className="text-sm">First Year</Label>
                         <Input
-                          id="religious-term1"
-                          name="religious-term1"
+                          id="religious-year1"
+                          name="religious-year1"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={religiousTerm1}
-                          onChange={(e) => setReligiousTerm1(e.target.value)}
+                          value={religiousYear1}
+                          onChange={(e) => setReligiousYear1(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="religious-term2" className="text-sm">Second Term</Label>
+                        <Label htmlFor="religious-year2" className="text-sm">Second Year</Label>
                         <Input
-                          id="religious-term2"
-                          name="religious-term2"
+                          id="religious-year2"
+                          name="religious-year2"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={religiousTerm2}
-                          onChange={(e) => setReligiousTerm2(e.target.value)}
+                          value={religiousYear2}
+                          onChange={(e) => setReligiousYear2(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="religious-term3" className="text-sm">Third Term</Label>
+                        <Label htmlFor="religious-year3" className="text-sm">Third Year</Label>
                         <Input
-                          id="religious-term3"
-                          name="religious-term3"
+                          id="religious-year3"
+                          name="religious-year3"
                           placeholder="0-99"
                           type="number"
                           min="0"
                           max="99"
                           onInput={handleScoreInput}
                           required
-                          value={religiousTerm3}
-                          onChange={(e) => setReligiousTerm3(e.target.value)}
+                          value={religiousYear3}
+                          onChange={(e) => setReligiousYear3(e.target.value)}
                         />
                       </div>
                     </div>
@@ -1222,10 +1222,10 @@ const SchoolRegistration = () => {
                     schoolType === "" ||
                     religiousType === "" ||
                     selectedImage === null ||
-                    englishTerm1 === "" || englishTerm2 === "" || englishTerm3 === "" ||
-                    arithmeticTerm1 === "" || arithmeticTerm2 === "" || arithmeticTerm3 === "" ||
-                    generalTerm1 === "" || generalTerm2 === "" || generalTerm3 === "" ||
-                    religiousTerm1 === "" || religiousTerm2 === "" || religiousTerm3 === ""
+                    englishYear1 === "" || englishYear2 === "" || englishYear3 === "" ||
+                    arithmeticYear1 === "" || arithmeticYear2 === "" || arithmeticYear3 === "" ||
+                    generalYear1 === "" || generalYear2 === "" || generalYear3 === "" ||
+                    religiousYear1 === "" || religiousYear2 === "" || religiousYear3 === ""
                   }
                 >
                   Submit Registration
@@ -1247,19 +1247,10 @@ const SchoolRegistration = () => {
                       {registrations.length} student{registrations.length !== 1 ? 's' : ''} registered
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => setShowFinishConfirmModal(true)}
-                    disabled={isSaving}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? 'Finalizing...' : 'Finish Registration'}
-                  </Button>
                   <Button variant="outline" onClick={handlePrint} disabled={!registrations.length}>
                     <Printer className="h-4 w-4 mr-2" />
                     Print
                   </Button>
-                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -1349,10 +1340,10 @@ const SchoolRegistration = () => {
                         <TableHead>Full Name</TableHead>
                         <TableHead>Gender</TableHead>
                         <TableHead>School Type</TableHead>
-                        <TableHead>English (T1/T2/T3)</TableHead>
-                        <TableHead>Arithmetic (T1/T2/T3)</TableHead>
-                        <TableHead>General Paper (T1/T2/T3)</TableHead>
-                        <TableHead>Religious Studies (T1/T2/T3)</TableHead>
+                        <TableHead>English (Y1/Y2/Y3)</TableHead>
+                        <TableHead>Arithmetic (Y1/Y2/Y3)</TableHead>
+                        <TableHead>General Paper (Y1/Y2/Y3)</TableHead>
+                        <TableHead>Religious Studies (Y1/Y2/Y3)</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1456,8 +1447,8 @@ const SchoolRegistration = () => {
                                 <div className="flex gap-1">
                                   <Input
                                     type="number"
-                                    value={currentData.english.term1}
-                                    onChange={(e) => setEditData({...currentData, english: {...currentData.english, term1: e.target.value}})}
+                                    value={currentData.english.year1}
+                                    onChange={(e) => setEditData({...currentData, english: {...currentData.english, year1: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1465,8 +1456,8 @@ const SchoolRegistration = () => {
                                   />
                                   <Input
                                     type="number"
-                                    value={currentData.english.term2}
-                                    onChange={(e) => setEditData({...currentData, english: {...currentData.english, term2: e.target.value}})}
+                                    value={currentData.english.year2}
+                                    onChange={(e) => setEditData({...currentData, english: {...currentData.english, year2: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1474,8 +1465,8 @@ const SchoolRegistration = () => {
                                   />
                                   <Input
                                     type="number"
-                                    value={currentData.english.term3}
-                                    onChange={(e) => setEditData({...currentData, english: {...currentData.english, term3: e.target.value}})}
+                                    value={currentData.english.year3}
+                                    onChange={(e) => setEditData({...currentData, english: {...currentData.english, year3: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1483,7 +1474,7 @@ const SchoolRegistration = () => {
                                   />
                                 </div>
                               ) : (
-                                <span>{reg.english.term1}/{reg.english.term2}/{reg.english.term3}</span>
+                                <span>{reg.english.year1}/{reg.english.year2}/{reg.english.year3}</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -1491,8 +1482,8 @@ const SchoolRegistration = () => {
                                 <div className="flex gap-1">
                                   <Input
                                     type="number"
-                                    value={currentData.arithmetic.term1}
-                                    onChange={(e) => setEditData({...currentData, arithmetic: {...currentData.arithmetic, term1: e.target.value}})}
+                                    value={currentData.arithmetic.year1}
+                                    onChange={(e) => setEditData({...currentData, arithmetic: {...currentData.arithmetic, year1: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1500,8 +1491,8 @@ const SchoolRegistration = () => {
                                   />
                                   <Input
                                     type="number"
-                                    value={currentData.arithmetic.term2}
-                                    onChange={(e) => setEditData({...currentData, arithmetic: {...currentData.arithmetic, term2: e.target.value}})}
+                                    value={currentData.arithmetic.year2}
+                                    onChange={(e) => setEditData({...currentData, arithmetic: {...currentData.arithmetic, year2: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1509,8 +1500,8 @@ const SchoolRegistration = () => {
                                   />
                                   <Input
                                     type="number"
-                                    value={currentData.arithmetic.term3}
-                                    onChange={(e) => setEditData({...currentData, arithmetic: {...currentData.arithmetic, term3: e.target.value}})}
+                                    value={currentData.arithmetic.year3}
+                                    onChange={(e) => setEditData({...currentData, arithmetic: {...currentData.arithmetic, year3: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1518,7 +1509,7 @@ const SchoolRegistration = () => {
                                   />
                                 </div>
                               ) : (
-                                <span>{reg.arithmetic.term1}/{reg.arithmetic.term2}/{reg.arithmetic.term3}</span>
+                                <span>{reg.arithmetic.year1}/{reg.arithmetic.year2}/{reg.arithmetic.year3}</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -1526,8 +1517,8 @@ const SchoolRegistration = () => {
                                 <div className="flex gap-1">
                                   <Input
                                     type="number"
-                                    value={currentData.general.term1}
-                                    onChange={(e) => setEditData({...currentData, general: {...currentData.general, term1: e.target.value}})}
+                                    value={currentData.general.year1}
+                                    onChange={(e) => setEditData({...currentData, general: {...currentData.general, year1: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1535,8 +1526,8 @@ const SchoolRegistration = () => {
                                   />
                                   <Input
                                     type="number"
-                                    value={currentData.general.term2}
-                                    onChange={(e) => setEditData({...currentData, general: {...currentData.general, term2: e.target.value}})}
+                                    value={currentData.general.year2}
+                                    onChange={(e) => setEditData({...currentData, general: {...currentData.general, year2: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1544,8 +1535,8 @@ const SchoolRegistration = () => {
                                   />
                                   <Input
                                     type="number"
-                                    value={currentData.general.term3}
-                                    onChange={(e) => setEditData({...currentData, general: {...currentData.general, term3: e.target.value}})}
+                                    value={currentData.general.year3}
+                                    onChange={(e) => setEditData({...currentData, general: {...currentData.general, year3: e.target.value}})}
                                     onInput={handleScoreInput}
                                     className="h-8 w-16"
                                     min="0"
@@ -1553,7 +1544,7 @@ const SchoolRegistration = () => {
                                   />
                                 </div>
                               ) : (
-                                <span>{reg.general.term1}/{reg.general.term2}/{reg.general.term3}</span>
+                                <span>{reg.general.year1}/{reg.general.year2}/{reg.general.year3}</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -1574,8 +1565,8 @@ const SchoolRegistration = () => {
                                   <div className="flex gap-1">
                                     <Input
                                       type="number"
-                                      value={currentData.religious.term1}
-                                      onChange={(e) => setEditData({...currentData, religious: {...currentData.religious, term1: e.target.value}})}
+                                      value={currentData.religious.year1}
+                                      onChange={(e) => setEditData({...currentData, religious: {...currentData.religious, year1: e.target.value}})}
                                       onInput={handleScoreInput}
                                       className="h-8 w-16"
                                       min="0"
@@ -1583,8 +1574,8 @@ const SchoolRegistration = () => {
                                     />
                                     <Input
                                       type="number"
-                                      value={currentData.religious.term2}
-                                      onChange={(e) => setEditData({...currentData, religious: {...currentData.religious, term2: e.target.value}})}
+                                      value={currentData.religious.year2}
+                                      onChange={(e) => setEditData({...currentData, religious: {...currentData.religious, year2: e.target.value}})}
                                       onInput={handleScoreInput}
                                       className="h-8 w-16"
                                       min="0"
@@ -1592,8 +1583,8 @@ const SchoolRegistration = () => {
                                     />
                                     <Input
                                       type="number"
-                                      value={currentData.religious.term3}
-                                      onChange={(e) => setEditData({...currentData, religious: {...currentData.religious, term3: e.target.value}})}
+                                      value={currentData.religious.year3}
+                                      onChange={(e) => setEditData({...currentData, religious: {...currentData.religious, year3: e.target.value}})}
                                       onInput={handleScoreInput}
                                       className="h-8 w-16"
                                       min="0"
@@ -1606,7 +1597,7 @@ const SchoolRegistration = () => {
                                   <div className="text-xs text-muted-foreground mb-1">
                                     {reg.religious.type === 'islam' ? 'Islamic' : 'Christian'}
                                   </div>
-                                  <div>{reg.religious.term1}/{reg.religious.term2}/{reg.religious.term3}</div>
+                                  <div>{reg.religious.year1}/{reg.religious.year2}/{reg.religious.year3}</div>
                                 </div>
                               )}
                             </TableCell>
@@ -1734,51 +1725,6 @@ const SchoolRegistration = () => {
         </div>
       </main>
 
-      {/* Finish Registration Confirmation Modal - Minimalist Design */}
-      {showFinishConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-sm mx-4 overflow-hidden border border-gray-100">
-            <div className="p-6">
-              {/* Header */}
-              <div className="text-center mb-4">
-                <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-3" />
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Finalize Registration
-                </h3>
-              </div>
-
-              {/* Content */}
-              <div className="space-y-4 mb-6">
-                <p className="text-gray-600 text-center">
-                  This will finalize the current registration batch.
-                </p>
-                <div className="bg-blue-50 p-3 rounded-md">
-                  <p className="text-sm text-blue-700 text-center">
-                    <span className="font-medium">Note:</span> New registrations after this will be marked as <strong>LATE</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowFinishConfirmModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  onClick={handleFinishRegistration}
-                >
-                  Confirm
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

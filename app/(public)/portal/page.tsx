@@ -37,15 +37,6 @@ const PortalPage = () => {
         
         <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                School Portal
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Access validation, registration services, and school management tools
-              </p>
-            </div>
-
             <Alert className="mb-8 border-primary/20 bg-accent">
               <AlertCircle className="h-4 w-4 text-primary" />
               <AlertDescription className="text-sm">
