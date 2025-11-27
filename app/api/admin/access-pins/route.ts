@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // GET - List all access PINs
 export async function GET(req: NextRequest) {
@@ -23,8 +21,6 @@ export async function GET(req: NextRequest) {
       { error: 'Failed to fetch access PINs' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -57,8 +53,6 @@ export async function DELETE(req: NextRequest) {
       { error: 'Failed to deactivate PIN' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -89,7 +83,5 @@ export async function PATCH(req: NextRequest) {
       { error: 'Failed to reactivate PIN' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

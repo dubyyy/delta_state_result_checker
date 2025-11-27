@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/utils/auth';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // ==========================
 //          GET
 // ==========================
 export async function GET(request: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(request, RATE_LIMITS.READ);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const pinCode = searchParams.get('pinCode');
@@ -56,6 +63,12 @@ export async function GET(request: NextRequest) {
 //          POST
 // ==========================
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(request, RATE_LIMITS.MUTATION);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id || null;

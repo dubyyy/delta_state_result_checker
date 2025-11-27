@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // GET - Get current registration status for all schools or specific school
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(req, RATE_LIMITS.READ);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
@@ -48,13 +53,17 @@ export async function GET(req: NextRequest) {
       { error: 'Failed to fetch registration status' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
 // POST - Toggle registration status for a specific school or all schools
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(req, RATE_LIMITS.ADMIN);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const body = await req.json();
     const { schoolId, registrationOpen, toggleAll } = body;
@@ -129,7 +138,5 @@ export async function POST(req: NextRequest) {
       { error: 'Failed to toggle registration status' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

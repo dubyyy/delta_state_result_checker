@@ -1,13 +1,25 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getLGAName, getLGACode } from "@/lib/lga-mapping";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(request, RATE_LIMITS.READ);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const lga = searchParams.get("lga");
     const schoolCode = searchParams.get("schoolCode");
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 1000); // Max 1000 per page
+    const skip = (page - 1) * limit;
     
     // Build where clause
     const where: any = {};
@@ -55,21 +67,27 @@ export async function GET(request: Request) {
       };
     }
     
-    const students = await prisma.studentRegistration.findMany({
-      where,
-      include: {
-        school: {
-          select: {
-            schoolName: true,
-            schoolCode: true,
-            lgaCode: true,
+    // Get total count for pagination metadata
+    const [students, totalCount] = await Promise.all([
+      prisma.studentRegistration.findMany({
+        where,
+        include: {
+          school: {
+            select: {
+              schoolName: true,
+              schoolCode: true,
+              lgaCode: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.studentRegistration.count({ where }),
+    ]);
     
     // Transform data for frontend
     const transformedStudents = students.map(student => ({
@@ -115,7 +133,15 @@ export async function GET(request: Request) {
       date: student.createdAt.toISOString().split("T")[0],
     }));
     
-    return NextResponse.json(transformedStudents);
+    return NextResponse.json({
+      data: transformedStudents,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching students:", error);
     return NextResponse.json(

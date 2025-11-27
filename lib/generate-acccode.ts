@@ -31,3 +31,51 @@ export async function generateUniqueAccCode(prisma: PrismaClient): Promise<strin
   
   throw new Error('Failed to generate unique account code after multiple attempts');
 }
+
+/**
+ * Generates multiple unique account codes in a single batch operation
+ * Optimized to avoid N+1 queries - makes only ONE database query
+ * @param prisma - PrismaClient instance
+ * @param count - Number of codes to generate
+ * @returns Array of unique 10-digit strings
+ */
+export async function generateBatchAccCodes(
+  prisma: PrismaClient, 
+  count: number
+): Promise<string[]> {
+  const maxAttempts = 3;
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    // Generate candidate codes
+    const candidates = new Set<string>();
+    while (candidates.size < count) {
+      const code = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      candidates.add(code);
+    }
+    
+    const candidateArray = Array.from(candidates);
+    
+    // Single query to check all codes at once
+    const existing = await prisma.studentRegistration.findMany({
+      where: {
+        accCode: {
+          in: candidateArray,
+        },
+      },
+      select: { accCode: true },
+    });
+    
+    const existingSet = new Set(existing.map(r => r.accCode));
+    const uniqueCodes = candidateArray.filter(code => !existingSet.has(code));
+    
+    // If we got enough unique codes, return them
+    if (uniqueCodes.length >= count) {
+      return uniqueCodes.slice(0, count);
+    }
+    
+    attempts++;
+  }
+  
+  throw new Error('Failed to generate unique account codes after multiple attempts');
+}

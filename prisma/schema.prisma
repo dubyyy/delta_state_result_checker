@@ -80,56 +80,81 @@ model School {
   schoolCode           String
   schoolName           String
   password             String
-  accessPin            String?
-  registrationOpen     Boolean               @default(true)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
+  registrationOpen     Boolean               @default(true)
+  accessPin            String?
   studentRegistrations StudentRegistration[]
 
   @@unique([lgaCode, schoolCode])
+  @@index([lgaCode])
+  @@index([schoolCode])
 }
 
 model StudentRegistration {
-  id              String   @id @default(cuid())
-  accCode         String   @unique @default(cuid())
-  studentNumber   String   @unique
-  firstname       String
-  othername       String?
-  lastname        String
-  gender          String
-  schoolType      String
-  passport        String?
-  englishTerm1    String?
-  englishTerm2    String?
-  englishTerm3    String?
-  arithmeticTerm1 String?
-  arithmeticTerm2 String?
-  arithmeticTerm3 String?
-  generalTerm1    String?
-  generalTerm2    String?
-  generalTerm3    String?
-  religiousType   String?
-  religiousTerm1  String?
-  religiousTerm2  String?
-  religiousTerm3  String?
-  lateRegistration Boolean @default(false)
-  prcd            Int     @default(1)
-  year            String  @default("2025/2026")
-  schoolId        String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  studentNumber    String   @unique
+  firstname        String
+  othername        String?
+  lastname         String
+  gender           String
+  schoolType       String
+  passport         String?
+  englishTerm1     String?
+  englishTerm2     String?
+  englishTerm3     String?
+  arithmeticTerm1  String?
+  arithmeticTerm2  String?
+  arithmeticTerm3  String?
+  generalTerm1     String?
+  generalTerm2     String?
+  generalTerm3     String?
+  religiousType    String?
+  religiousTerm1   String?
+  religiousTerm2   String?
+  religiousTerm3   String?
+  schoolId         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  accCode          String   @unique @default(cuid())
+  lateRegistration Boolean  @default(false)
+  prcd             Int      @default(1)
+  year             String   @default("2025/2026")
+  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([studentNumber])
 }
 
 model AccessPin {
-  id         String   @id @default(cuid())
-  pin        String   @unique
-  isActive   Boolean  @default(true)
-  usageCount Int      @default(0)
+  id              String    @id @default(cuid())
+  pin             String    @unique
+  isActive        Boolean   @default(true)
+  usageCount      Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  claimedAt       DateTime?
   ownerLgaCode    String?
   ownerSchoolCode String?
   ownerSchoolName String?
-  claimedAt  DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  @@index([pin])
+  @@index([isActive])
+}
+
+model SchoolData {
+  id        String   @id @default(cuid())
+  lgaCode   String
+  lCode     String
+  schCode   String
+  progID    String
+  schName   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lgaCode, schCode])
+  @@index([lgaCode])
+  @@index([schCode])
+  @@index([lCode])
+  @@index([schName])
 }

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import schoolsData from '@/data.json';
-
-const prisma = new PrismaClient();
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 interface SchoolData {
   lgaCode: string;
@@ -16,6 +15,12 @@ interface SchoolData {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(req, RATE_LIMITS.AUTH);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const { lgaCode, schoolCode, password } = await req.json();
 
@@ -106,7 +111,5 @@ export async function POST(req: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

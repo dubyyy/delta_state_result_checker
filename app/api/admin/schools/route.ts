@@ -1,11 +1,27 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { getLGAName } from "@/lib/lga-mapping";
 import { generateAccessPin } from "@/lib/generate-pin";
+import { cache, CACHE_TTL } from "@/lib/cache";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
-export async function GET() {
+const SCHOOLS_CACHE_KEY = 'admin:schools';
+
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(req, RATE_LIMITS.READ);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
+    // Check cache first (5 minute TTL)
+    const cached = cache.get(SCHOOLS_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const schools = await prisma.school.findMany({
       include: {
         _count: {
@@ -31,6 +47,9 @@ export async function GET() {
       accessPin: school.accessPin,
       createdAt: school.createdAt,
     }));
+
+    // Cache for 5 minutes
+    cache.set(SCHOOLS_CACHE_KEY, transformedSchools, CACHE_TTL.MEDIUM);
     
     return NextResponse.json(transformedSchools);
   } catch (error) {
@@ -42,7 +61,13 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(request, RATE_LIMITS.ADMIN);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const body = await request.json();
     const { name, code, lga } = body;
@@ -88,6 +113,9 @@ export async function POST(request: Request) {
       },
     });
     
+    // Invalidate schools cache
+    cache.delete(SCHOOLS_CACHE_KEY);
+    
     return NextResponse.json({
       id: school.id,
       name: school.schoolName,
@@ -108,7 +136,13 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(request, RATE_LIMITS.ADMIN);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -123,6 +157,9 @@ export async function DELETE(request: Request) {
     await prisma.school.delete({
       where: { id },
     });
+    
+    // Invalidate schools cache
+    cache.delete(SCHOOLS_CACHE_KEY);
     
     return NextResponse.json({ success: true });
   } catch (error) {

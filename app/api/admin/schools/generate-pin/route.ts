@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { generateAccessPin } from '@/lib/generate-pin';
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +48,5 @@ export async function POST(req: NextRequest) {
       { error: 'Failed to generate access PIN' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

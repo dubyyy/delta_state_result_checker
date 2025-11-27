@@ -1,8 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cache, CACHE_TTL } from "@/lib/cache";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
-export async function GET() {
+const STATS_CACHE_KEY = 'admin:stats';
+
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(req, RATE_LIMITS.READ);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
+    // Check cache first (1 minute TTL for dashboard stats)
+    const cached = cache.get(STATS_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     // Get total students count
     const totalStudents = await prisma.studentRegistration.count();
     
@@ -55,14 +71,19 @@ export async function GET() {
       ? Math.round(((registrationsToday - registrationsYesterday) / registrationsYesterday) * 100)
       : 0;
 
-    return NextResponse.json({
+    const stats = {
       totalStudents,
       totalSchools,
       registrationsToday,
       studentTrend,
       todayTrend,
       registrationStatus: "Open", // This could be from a settings table
-    });
+    };
+
+    // Cache for 1 minute
+    cache.set(STATS_CACHE_KEY, stats, CACHE_TTL.SHORT);
+
+    return NextResponse.json(stats);
   } catch (error) {
     console.error("Error fetching stats:", error);
     return NextResponse.json(

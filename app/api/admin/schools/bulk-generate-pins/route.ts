@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { generateAccessPin } from '@/lib/generate-pin';
-
-const prisma = new PrismaClient();
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(req, RATE_LIMITS.ADMIN);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     // Find all schools without an access PIN
     const schoolsWithoutPin = await prisma.school.findMany({
@@ -14,6 +19,7 @@ export async function POST(req: NextRequest) {
           { accessPin: '' },
         ],
       },
+      select: { id: true }, // Only select ID for efficiency
     });
 
     if (schoolsWithoutPin.length === 0) {
@@ -23,21 +29,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate PINs for all schools without them
-    const updates = await Promise.all(
-      schoolsWithoutPin.map(async (school) => {
-        const newPin = generateAccessPin();
-        return prisma.school.update({
-          where: { id: school.id },
-          data: { accessPin: newPin },
-        });
-      })
-    );
+    // Pre-generate all PINs (fast, no DB calls)
+    const schoolPinMap = schoolsWithoutPin.map(school => ({
+      id: school.id,
+      pin: generateAccessPin(),
+    }));
+
+    // Batch update using transaction for better performance
+    // Process in chunks to avoid hitting query size limits
+    const CHUNK_SIZE = 100;
+    let totalUpdated = 0;
+
+    for (let i = 0; i < schoolPinMap.length; i += CHUNK_SIZE) {
+      const chunk = schoolPinMap.slice(i, i + CHUNK_SIZE);
+      
+      await prisma.$transaction(
+        chunk.map(({ id, pin }) =>
+          prisma.school.update({
+            where: { id },
+            data: { accessPin: pin },
+          })
+        )
+      );
+      
+      totalUpdated += chunk.length;
+    }
 
     return NextResponse.json(
       {
-        message: `Access PINs generated successfully for ${updates.length} school(s)`,
-        count: updates.length,
+        message: `Access PINs generated successfully for ${totalUpdated} school(s)`,
+        count: totalUpdated,
       },
       { status: 200 }
     );
@@ -47,7 +68,5 @@ export async function POST(req: NextRequest) {
       { error: 'Failed to generate access PINs' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

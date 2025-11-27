@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { generateUniqueAccCode } from '@/lib/generate-acccode';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { generateBatchAccCodes } from '@/lib/generate-acccode';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 interface JwtPayload {
   schoolId: string;
@@ -94,8 +93,6 @@ export async function PATCH(req: NextRequest) {
       { error: 'Failed to update registration. Please try again.' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -150,8 +147,6 @@ export async function DELETE(req: NextRequest) {
       { error: 'Failed to delete registration. Please try again.' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -218,12 +213,16 @@ export async function GET(req: NextRequest) {
       { error: 'Failed to fetch registrations. Please try again.' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitCheck = checkRateLimit(req, RATE_LIMITS.MUTATION);
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response!;
+  }
+
   try {
     // Get and verify JWT token
     const authHeader = req.headers.get('authorization');
@@ -271,36 +270,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prepare data for bulk insert with unique accCodes
-    const studentData = await Promise.all(
-      registrations.map(async (reg: RegistrationData) => ({
-        accCode: await generateUniqueAccCode(prisma),
-        studentNumber: reg.studentNumber,
-        firstname: reg.firstname,
-        othername: reg.othername || '',
-        lastname: reg.lastname,
-        gender: reg.gender,
-        schoolType: reg.schoolType,
-        passport: reg.passport,
-        englishTerm1: reg.english.term1 || '-',
-        englishTerm2: reg.english.term2 || '-',
-        englishTerm3: reg.english.term3 || '-',
-        arithmeticTerm1: reg.arithmetic.term1 || '-',
-        arithmeticTerm2: reg.arithmetic.term2 || '-',
-        arithmeticTerm3: reg.arithmetic.term3 || '-',
-        generalTerm1: reg.general.term1 || '-',
-        generalTerm2: reg.general.term2 || '-',
-        generalTerm3: reg.general.term3 || '-',
-        religiousType: reg.religious.type || '',
-        religiousTerm1: reg.religious.term1 || '-',
-        religiousTerm2: reg.religious.term2 || '-',
-        religiousTerm3: reg.religious.term3 || '-',
-        lateRegistration: reg.isLateRegistration || false,
-        year: reg.year || '2025/2026',
-        prcd: reg.prcd || 1,
-        schoolId: decoded.schoolId,
-      }))
-    );
+    // Generate all unique accCodes in ONE batch query (10-100x faster!)
+    const accCodes = await generateBatchAccCodes(prisma, registrations.length);
+    
+    // Prepare data for bulk insert with pre-generated accCodes
+    const studentData = registrations.map((reg: RegistrationData, index: number) => ({
+      accCode: accCodes[index],
+      studentNumber: reg.studentNumber,
+      firstname: reg.firstname,
+      othername: reg.othername || '',
+      lastname: reg.lastname,
+      gender: reg.gender,
+      schoolType: reg.schoolType,
+      passport: reg.passport,
+      englishTerm1: reg.english.term1 || '-',
+      englishTerm2: reg.english.term2 || '-',
+      englishTerm3: reg.english.term3 || '-',
+      arithmeticTerm1: reg.arithmetic.term1 || '-',
+      arithmeticTerm2: reg.arithmetic.term2 || '-',
+      arithmeticTerm3: reg.arithmetic.term3 || '-',
+      generalTerm1: reg.general.term1 || '-',
+      generalTerm2: reg.general.term2 || '-',
+      generalTerm3: reg.general.term3 || '-',
+      religiousType: reg.religious.type || '',
+      religiousTerm1: reg.religious.term1 || '-',
+      religiousTerm2: reg.religious.term2 || '-',
+      religiousTerm3: reg.religious.term3 || '-',
+      lateRegistration: reg.isLateRegistration || false,
+      year: reg.year || '2025/2026',
+      prcd: reg.prcd || 1,
+      schoolId: decoded.schoolId,
+    }));
 
     // If override is true, replace all existing registrations for this school
     if (override === true) {
@@ -357,7 +357,5 @@ export async function POST(req: NextRequest) {
       { error: 'Failed to save registrations. Please try again.' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
