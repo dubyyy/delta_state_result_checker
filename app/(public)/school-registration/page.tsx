@@ -25,6 +25,7 @@ interface Registration {
   lastname: string;
   othername: string;
   firstname: string;
+  dateOfBirth?: string;
   gender: string;
   schoolType: string;
   passport: string | null;
@@ -86,6 +87,7 @@ const SchoolRegistration = () => {
   const [lastname, setLastname] = useState<string>("");
   const [firstname, setFirstname] = useState<string>("");
   const [othername, setOthername] = useState<string>("");
+  const [dateOfBirth, setDateOfBirth] = useState<string>("");
   const [englishYear1, setEnglishYear1] = useState<string>("");
   const [englishYear2, setEnglishYear2] = useState<string>("");
   const [englishYear3, setEnglishYear3] = useState<string>("");
@@ -181,6 +183,7 @@ const SchoolRegistration = () => {
         lastname: r.lastname,
         othername: r.othername || '',
         firstname: r.firstname,
+        dateOfBirth: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : '',
         gender: r.gender,
         schoolType: r.schoolType,
         passport: r.passport || null,
@@ -398,6 +401,7 @@ const SchoolRegistration = () => {
               lastname: r.lastname,
               othername: r.othername || '',
               firstname: r.firstname,
+              dateOfBirth: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : '',
               gender: r.gender,
               schoolType: r.schoolType,
               passport: r.passport || null,
@@ -797,6 +801,7 @@ const SchoolRegistration = () => {
                     lastname.trim() !== "" &&
                     othername.trim() !== "" &&
                     firstname.trim() !== "" &&
+                    dateOfBirth.trim() !== "" &&
                     gender !== "" &&
                     schoolType !== "" &&
                     religiousType !== "" &&
@@ -817,6 +822,7 @@ const SchoolRegistration = () => {
                     lastname: formData.get('lastname') as string,
                     othername: formData.get('othername') as string,
                     firstname: formData.get('firstname') as string,
+                    dateOfBirth: dateOfBirth,
                     gender: gender,
                     schoolType: schoolType,
                     passport: selectedImage,
@@ -880,6 +886,7 @@ const SchoolRegistration = () => {
                   setLastname("");
                   setFirstname("");
                   setOthername("");
+                  setDateOfBirth("");
                   setEnglishYear1("");
                   setEnglishYear2("");
                   setEnglishYear3("");
@@ -929,6 +936,18 @@ const SchoolRegistration = () => {
                     required
                     value={firstname}
                     onChange={(e) => setFirstname(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    type="date"
+                    required
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
                   />
                 </div>
 

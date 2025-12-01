@@ -14,7 +14,6 @@ model User {
   emailVerified DateTime?
   image         String?
   accounts      Account[]
-  results       Result[]
   sessions      Session[]
 }
 
@@ -53,26 +52,28 @@ model VerificationToken {
 }
 
 model Result {
-  id                String   @id @default(cuid())
-  year              String
-  candidateName     String
-  sex               String?
-  school            String?
-  lga               String?
-  examinationNumber String   @unique
-  englishGrade      String?
-  mathGrade         String?
-  generalPaperGrade String?
-  crsGrade          String?
-  remark            String?
-  pinCode           String?
-  serialNumber      String?
-  lgaExamNumber     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  userId            String?
-  user              User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            Int     @id @default(autoincrement())
+  sessionYr     String
+  fName         String
+  mName         String?
+  lName         String
+  sexCd         String
+  institutionCd String
+  schoolName    String
+  lgaCd         String
+  examinationNo String  @unique
+  eng           Float?
+  engGrd        String?
+  arit          Float?
+  aritGrd       String?
+  gp            Float?
+  gpGrd         String?
+  rgs           Float?
+  rgsGrd        String?
+  remark        String?
+  accessPin     String
 }
+
 
 model School {
   id                   String                @id @default(cuid())
@@ -92,11 +93,12 @@ model School {
 }
 
 model StudentRegistration {
-  id               String   @id @default(cuid())
-  studentNumber    String   @unique
+  id               String    @id @default(cuid())
+  studentNumber    String    @unique
   firstname        String
   othername        String?
   lastname         String
+  dateOfBirth      DateTime?
   gender           String
   schoolType       String
   passport         String?
@@ -114,13 +116,13 @@ model StudentRegistration {
   religiousTerm2   String?
   religiousTerm3   String?
   schoolId         String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  accCode          String   @unique @default(cuid())
-  lateRegistration Boolean  @default(false)
-  prcd             Int      @default(1)
-  year             String   @default("2025/2026")
-  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  accCode          String    @unique @default(cuid())
+  lateRegistration Boolean   @default(false)
+  prcd             Int       @default(1)
+  year             String    @default("2025/2026")
+  school           School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
   @@index([studentNumber])

@@ -11,9 +11,9 @@ export async function GET(request: NextRequest) {
     const examinationNumber = searchParams.get('examNumber');
 
     // Validate required fields
-    if (!pinCode || !serialNumber || !examinationNumber) {
+    if (!pinCode || !examinationNumber) {
       return NextResponse.json(
-        { error: 'Pin Code, Serial Number, and Examination Number are required.' },
+        { error: 'Access Pin and Examination Number are required.' },
         { status: 400 }
       );
     }
@@ -21,9 +21,8 @@ export async function GET(request: NextRequest) {
     // Query database
     const result = await prisma.result.findFirst({
       where: {
-        pinCode,
-        serialNumber,
-        examinationNumber,
+        accessPin: pinCode,
+        examinationNo: examinationNumber,
       },
     });
 
@@ -50,18 +49,16 @@ export async function GET(request: NextRequest) {
     };
 
     // Parse school and LGA information
-    // Expected format: "ADAMS PRIMARY SCHOOL, ISSELE-UKU" or similar
-    const schoolName = result.school || '';
-    const lgaName = result.lga || '';
+    const schoolName = result.schoolName || '';
+    const lgaName = result.lgaCd || '';
     
     // Try to extract school code and LGA code from examination number or use defaults
-    // Examination number format might contain codes, otherwise use defaults
     let lgaCode = '1';
     let schoolCode = '1';
     
     // If we can extract codes from the examination number (e.g., format: LGACODE-SCHOOLCODE-NUMBER)
-    if (result.examinationNumber) {
-      const parts = result.examinationNumber.split('-');
+    if (result.examinationNo) {
+      const parts = result.examinationNo.split('-');
       if (parts.length >= 2) {
         lgaCode = parts[0] || '1';
         schoolCode = parts[1] || '1';
@@ -85,7 +82,7 @@ export async function GET(request: NextRequest) {
       lgaName: lgaName.toUpperCase().replace(/\s+/g, '-'),
       schoolCode,
       schoolName: schoolName.toUpperCase(),
-      year: result.year,
+      year: result.sessionYr,
     });
 
     // Draw data table header (like in the image)
@@ -120,9 +117,13 @@ export async function GET(request: NextRequest) {
       borderWidth: 1,
     });
     
-    page.drawText(result.examinationNumber || '', { x: colExamNo, y: dataRowY + 3, size: 9, font });
-    page.drawText(result.candidateName || '', { x: colNames, y: dataRowY + 3, size: 9, font });
-    page.drawText(result.sex || '', { x: colSex, y: dataRowY + 3, size: 9, font });
+    const candidateName = [result.fName, result.mName, result.lName]
+      .filter(Boolean)
+      .join(' ');
+    
+    page.drawText(result.examinationNo || '', { x: colExamNo, y: dataRowY + 3, size: 9, font });
+    page.drawText(candidateName, { x: colNames, y: dataRowY + 3, size: 9, font });
+    page.drawText(result.sexCd || '', { x: colSex, y: dataRowY + 3, size: 9, font });
 
     // Passport photo (top-left corner)
     const photoSize = 110;
@@ -163,9 +164,9 @@ export async function GET(request: NextRequest) {
     const lineH = 18;
 
     const info = [
-      `Year: ${result.year || 'N/A'}`,
-      `School: ${result.school || 'N/A'}`,
-      `Local Government Area: ${result.lga || 'N/A'}`,
+      `Year: ${result.sessionYr || 'N/A'}`,
+      `School: ${result.schoolName || 'N/A'}`,
+      `Local Government Area: ${result.lgaCd || 'N/A'}`,
     ];
 
     info.forEach((text, index) => {
@@ -200,10 +201,10 @@ export async function GET(request: NextRequest) {
 
     // Rows
     const subjects: [string, string | null][] = [
-      ["ENGLISH STUDIES", result.englishGrade],
-      ["MATHEMATICS", result.mathGrade],
-      ["GENERAL PAPER", result.generalPaperGrade],
-      ["CHRISTIAN RELIGIOUS STUDIES", result.crsGrade],
+      ["ENGLISH STUDIES", result.engGrd],
+      ["MATHEMATICS", result.aritGrd],
+      ["GENERAL PAPER", result.gpGrd],
+      ["RELIGIOUS STUDIES", result.rgsGrd],
     ];
 
     subjects.forEach(([subj, grade], i) => {
@@ -284,7 +285,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="Result_${result.examinationNumber}.pdf"`,
+        'Content-Disposition': `attachment; filename="Result_${result.examinationNo}.pdf"`,
       },
     });
 

@@ -17,6 +17,7 @@ interface StudentRegistration {
   firstname: string;
   othername: string;
   lastname: string;
+  dateOfBirth?: string;
   gender: string;
   schoolType: string;
   passport: string | null;
@@ -1210,6 +1211,7 @@ const Validation = () => {
                                     <TableHead>Passport</TableHead>
                                     <TableHead>Student Number</TableHead>
                                     <TableHead>Full Name</TableHead>
+                                    <TableHead>Date of Birth</TableHead>
                                     <TableHead>Gender</TableHead>
                                     <TableHead>School Type</TableHead>
                                     <TableHead>English</TableHead>
@@ -1239,6 +1241,9 @@ const Validation = () => {
                               <TableCell className="font-medium">{student.studentNumber}</TableCell>
                               <TableCell>
                                 {student.lastname} {student.othername} {student.firstname}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A'}
                               </TableCell>
                               <TableCell className="capitalize">{student.gender}</TableCell>
                               <TableCell className="capitalize">{student.schoolType}</TableCell>
@@ -1355,6 +1360,15 @@ const Validation = () => {
                       value={editFormData.lastname}
                       onChange={(e) => handleEditFormChange('lastname', e.target.value)}
                       required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-dateOfBirth">Date of Birth</Label>
+                    <Input
+                      id="edit-dateOfBirth"
+                      type="date"
+                      value={editFormData.dateOfBirth || ''}
+                      onChange={(e) => handleEditFormChange('dateOfBirth', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/utils/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 interface CSVRow {
@@ -51,28 +49,27 @@ function parseCSV(csvText: string): CSVRow[] {
   return rows;
 }
 
-function mapCSVRowToResult(row: CSVRow, userId: string | null) {
-  // Combine first name, middle name, and last name
-  const candidateName = [row.FNAME, row.MNAME, row.LNAME]
-    .filter(Boolean)
-    .join(' ');
-
+function mapCSVRowToResult(row: CSVRow) {
   return {
-    year: row.SESSIONYR,
-    candidateName,
-    sex: row.SEXCD,
-    school: row.SCHOOLNAME,
-    lga: row.LGACD,
-    examinationNumber: row.EXAMINATIONNO,
-    englishGrade: row.ENGGRD,
-    mathGrade: row.ARITGRD,
-    generalPaperGrade: row.GPGRD,
-    crsGrade: row.RGSGRD,
-    remark: row.REMARK,
-    pinCode: row.ACCCESS_PIN,
-    serialNumber: null,
-    lgaExamNumber: null,
-    userId,
+    sessionYr: row.SESSIONYR,
+    fName: row.FNAME,
+    mName: row.MNAME || null,
+    lName: row.LNAME,
+    sexCd: row.SEXCD,
+    institutionCd: row.INSTITUTIONCD,
+    schoolName: row.SCHOOLNAME,
+    lgaCd: row.LGACD,
+    examinationNo: row.EXAMINATIONNO,
+    eng: row.ENG ? parseFloat(row.ENG) : null,
+    engGrd: row.ENGGRD || null,
+    arit: row.ARIT ? parseFloat(row.ARIT) : null,
+    aritGrd: row.ARITGRD || null,
+    gp: row.GP ? parseFloat(row.GP) : null,
+    gpGrd: row.GPGRD || null,
+    rgs: row.RGS ? parseFloat(row.RGS) : null,
+    rgsGrd: row.RGSGRD || null,
+    remark: row.REMARK || null,
+    accessPin: row.ACCCESS_PIN,
   };
 }
 
@@ -84,9 +81,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.id || null;
-
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -131,7 +125,7 @@ export async function POST(request: NextRequest) {
 
       // Check if examination number already exists
       const existing = await prisma.result.findUnique({
-        where: { examinationNumber: row.EXAMINATIONNO },
+        where: { examinationNo: row.EXAMINATIONNO },
       });
 
       if (existing) {
@@ -142,7 +136,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      resultsToCreate.push(mapCSVRowToResult(row, userId));
+      resultsToCreate.push(mapCSVRowToResult(row));
     }
 
     // Bulk create results

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/utils/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // ==========================
@@ -21,9 +19,9 @@ export async function GET(request: NextRequest) {
     const examinationNumber = searchParams.get('examNumber');
 
     // Validate required fields
-    if (!pinCode || !serialNumber || !examinationNumber) {
+    if (!pinCode || !examinationNumber) {
       return NextResponse.json(
-        { error: 'Pin Code, Serial Number, and Examination Number are required.' },
+        { error: 'Access Pin and Examination Number are required.' },
         { status: 400 }
       );
     }
@@ -31,9 +29,8 @@ export async function GET(request: NextRequest) {
     // Query database
     const result = await prisma.result.findFirst({
       where: {
-        pinCode,
-        serialNumber,
-        examinationNumber,
+        accessPin: pinCode,
+        examinationNo: examinationNumber,
       },
     });
 
@@ -70,37 +67,39 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.id || null;
-
     const body = await request.json();
 
     const {
-      year,
-      candidateName,
-      sex,
-      school,
-      lga,
-      examinationNumber,
-      englishGrade,
-      mathGrade,
-      generalPaperGrade,
-      crsGrade,
+      sessionYr,
+      fName,
+      mName,
+      lName,
+      sexCd,
+      institutionCd,
+      schoolName,
+      lgaCd,
+      examinationNo,
+      eng,
+      engGrd,
+      arit,
+      aritGrd,
+      gp,
+      gpGrd,
+      rgs,
+      rgsGrd,
       remark,
-      pinCode,
-      serialNumber,
-      lgaExamNumber,
+      accessPin,
     } = body;
 
-    if (!year || !candidateName || !examinationNumber) {
+    if (!sessionYr || !examinationNo || (!fName && !lName)) {
       return NextResponse.json(
-        { error: 'Year, candidate name, and examination number are required.' },
+        { error: 'Session year, examination number, and at least one name field are required.' },
         { status: 400 }
       );
     }
 
     const existingResult = await prisma.result.findUnique({
-      where: { examinationNumber },
+      where: { examinationNo },
     });
 
     if (existingResult) {
@@ -112,21 +111,25 @@ export async function POST(request: NextRequest) {
 
     const result = await prisma.result.create({
       data: {
-        year,
-        candidateName,
-        sex,
-        school,
-        lga,
-        examinationNumber,
-        englishGrade,
-        mathGrade,
-        generalPaperGrade,
-        crsGrade,
+        sessionYr,
+        fName,
+        mName,
+        lName,
+        sexCd,
+        institutionCd,
+        schoolName,
+        lgaCd,
+        examinationNo,
+        eng: eng ? parseFloat(eng) : null,
+        engGrd,
+        arit: arit ? parseFloat(arit) : null,
+        aritGrd,
+        gp: gp ? parseFloat(gp) : null,
+        gpGrd,
+        rgs: rgs ? parseFloat(rgs) : null,
+        rgsGrd,
         remark,
-        pinCode,
-        serialNumber,
-        lgaExamNumber,
-        userId,
+        accessPin,
       },
     });
 

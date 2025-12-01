@@ -3,14 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Printer, Download } from "lucide-react";
 import Link from 'next/link';
 import { useState } from "react";
 
 const PrimaryResult = () => {
   const [formData, setFormData] = useState({
     pinCode: "",
-    serial: "",
     examNumber: "",
   });
   const [loading, setLoading] = useState(false);
@@ -33,7 +32,7 @@ const PrimaryResult = () => {
 
     try {
       const response = await fetch(
-        `/api/results?pinCode=${encodeURIComponent(formData.pinCode)}&serial=${encodeURIComponent(formData.serial)}&examNumber=${encodeURIComponent(formData.examNumber)}`
+        `/api/results?pinCode=${encodeURIComponent(formData.pinCode)}&examNumber=${encodeURIComponent(formData.examNumber)}`
       );
 
       const data = await response.json();
@@ -62,7 +61,7 @@ const PrimaryResult = () => {
     setDownloadingPDF(true);
     try {
       const response = await fetch(
-        `/api/results/pdf?pinCode=${encodeURIComponent(formData.pinCode)}&serial=${encodeURIComponent(formData.serial)}&examNumber=${encodeURIComponent(formData.examNumber)}`
+        `/api/results/pdf?pinCode=${encodeURIComponent(formData.pinCode)}&examNumber=${encodeURIComponent(formData.examNumber)}`
       );
 
       if (!response.ok) {
@@ -76,7 +75,7 @@ const PrimaryResult = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Result_${resultData.examinationNumber}.pdf`;
+      a.download = `Result_${resultData.examinationNo}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -88,6 +87,46 @@ const PrimaryResult = () => {
       console.error("PDF Download Error:", err);
     } finally {
       setDownloadingPDF(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!resultData) return;
+    
+    try {
+      const response = await fetch(
+        `/api/results/pdf?pinCode=${encodeURIComponent(formData.pinCode)}&examNumber=${encodeURIComponent(formData.examNumber)}`
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to generate PDF');
+        return;
+      }
+
+      // Open PDF in new window for printing
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank');
+      
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      } else {
+        // Fallback: download if popup blocked
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Result_${resultData.examinationNo}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to print PDF';
+      setError(errorMsg);
+      console.error("Print Error:", err);
     }
   };
 
@@ -118,25 +157,12 @@ const PrimaryResult = () => {
                 )}
                 
                 <div className="space-y-2">
-                  <Label htmlFor="pinCode">Pin Code</Label>
+                  <Label htmlFor="pinCode">Access Pin</Label>
                   <Input
                     id="pinCode"
-                    placeholder="Enter your pin code"
+                    placeholder="Enter your access pin"
                     type="text"
                     value={formData.pinCode}
-                    onChange={handleChange}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="serial">Serial</Label>
-                  <Input
-                    id="serial"
-                    placeholder="Enter your serial number"
-                    type="text"
-                    value={formData.serial}
                     onChange={handleChange}
                     required
                     disabled={loading}
@@ -169,7 +195,7 @@ const PrimaryResult = () => {
               <CardHeader>
                 <CardTitle className="text-xl">Examination Result</CardTitle>
                 <CardDescription>
-                  Result details for {resultData.candidateName}
+                  Result details for {[resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -177,49 +203,77 @@ const PrimaryResult = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Year</p>
-                    <p className="font-medium">{resultData.year}</p>
+                    <p className="font-medium">{resultData.sessionYr}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Candidate Name</p>
-                    <p className="font-medium">{resultData.candidateName}</p>
+                    <p className="font-medium">{[resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ')}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Sex</p>
-                    <p className="font-medium">{resultData.sex || 'N/A'}</p>
+                    <p className="font-medium">{resultData.sexCd || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Access Pin</p>
+                    <p className="font-medium">{resultData.accessPin || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Examination Number</p>
-                    <p className="font-medium">{resultData.examinationNumber}</p>
+                    <p className="font-medium">{resultData.examinationNo}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Institution Code</p>
+                    <p className="font-medium">{resultData.institutionCd || 'N/A'}</p>
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-sm text-gray-500">School</p>
-                    <p className="font-medium">{resultData.school || 'N/A'}</p>
+                    <p className="font-medium">{resultData.schoolName || 'N/A'}</p>
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-sm text-gray-500">Local Government Area</p>
-                    <p className="font-medium">{resultData.lga || 'N/A'}</p>
+                    <p className="font-medium">{resultData.lgaCd || 'N/A'}</p>
                   </div>
                 </div>
 
                 {/* Grades */}
                 <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">Subject Grades</h3>
+                  <h3 className="font-semibold mb-3">Subject Results</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm">English Studies</span>
-                      <span className="font-bold text-lg">{resultData.englishGrade || 'N/A'}</span>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">English Studies</span>
+                        <span className="font-bold text-lg">{resultData.engGrd || 'N/A'}</span>
+                      </div>
+                      {resultData.eng && (
+                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.eng}</div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm">Mathematics</span>
-                      <span className="font-bold text-lg">{resultData.mathGrade || 'N/A'}</span>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Mathematics</span>
+                        <span className="font-bold text-lg">{resultData.aritGrd || 'N/A'}</span>
+                      </div>
+                      {resultData.arit && (
+                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.arit}</div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm">General Paper</span>
-                      <span className="font-bold text-lg">{resultData.generalPaperGrade || 'N/A'}</span>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">General Paper</span>
+                        <span className="font-bold text-lg">{resultData.gpGrd || 'N/A'}</span>
+                      </div>
+                      {resultData.gp && (
+                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.gp}</div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm">Christian Religious Studies</span>
-                      <span className="font-bold text-lg">{resultData.crsGrade || 'N/A'}</span>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Religious Studies</span>
+                        <span className="font-bold text-lg">{resultData.rgsGrd || 'N/A'}</span>
+                      </div>
+                      {resultData.rgs && (
+                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.rgs}</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -234,22 +288,32 @@ const PrimaryResult = () => {
                   </div>
                 )}
 
-                {/* Download PDF Button */}
-                <div className="border-t pt-4">
-                  <Button 
-                    onClick={handleDownloadPDF} 
-                    className="w-full"
-                    disabled={downloadingPDF}
-                  >
-                    {downloadingPDF ? "Generating PDF..." : "Download Official Result (PDF)"}
-                  </Button>
+                {/* Action Buttons */}
+                <div className="border-t pt-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Button 
+                      onClick={handlePrint} 
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Result
+                    </Button>
+                    <Button 
+                      onClick={handleDownloadPDF} 
+                      className="w-full"
+                      disabled={downloadingPDF}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      {downloadingPDF ? "Generating..." : "Download PDF"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
       </main>
-
     </div>
   );
 };
