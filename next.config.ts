@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   // Output optimization for serverless deployment
   output: 'standalone',
   
+  // Turbopack configuration
+  turbopack: {
+    root: process.cwd(), // Set the correct root directory
+  },
+  
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],

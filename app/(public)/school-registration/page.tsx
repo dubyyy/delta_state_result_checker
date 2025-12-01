@@ -128,6 +128,13 @@ const SchoolRegistration = () => {
         if (!data.registrationOpen) {
           setIsLateRegistrationMode(true);
         }
+      } else if (response.status === 404) {
+        console.error('School not found in database. You may need to log out and log in again.');
+        // Clear stale data and force re-login
+        localStorage.removeItem('schoolToken');
+        localStorage.removeItem('schoolData');
+        setIsLoggedIn(false);
+        setLoginError('Your session is invalid. Please login again.');
       }
     } catch (error) {
       console.error('Error checking registration status:', error);
@@ -174,6 +181,15 @@ const SchoolRegistration = () => {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         console.error('Failed to fetch registrations:', data.error || res.statusText);
+        
+        // Handle auth errors (401, 404) by forcing re-login
+        if (res.status === 401 || res.status === 404) {
+          console.error('Invalid or expired session. Clearing token...');
+          localStorage.removeItem('schoolToken');
+          localStorage.removeItem('schoolData');
+          setIsLoggedIn(false);
+          setLoginError('Your session has expired or is invalid. Please login again.');
+        }
         return;
       }
       const data = await res.json();
