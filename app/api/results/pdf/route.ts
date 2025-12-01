@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { drawPDFHeader } from '@/lib/pdf-header';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,12 +19,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Query database
-    const result = await prisma.result.findFirst({
+    // Query database - Type assertion due to Prisma client being out of sync with schema
+    const result: any = await prisma.result.findFirst({
       where: {
         accessPin: pinCode,
         examinationNo: examinationNumber,
-      },
+      } as any,
     });
 
     if (!result) {
@@ -43,30 +44,13 @@ export async function GET(request: NextRequest) {
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     // Helper function - center text
-    const center = (txt: string, size: number, y: number, f = font) => {
+    const centerText = (txt: string, size: number, y: number, f = font) => {
       const w = f.widthOfTextAtSize(txt, size);
       page.drawText(txt, { x: (width - w) / 2, y, size, font: f, color: rgb(0, 0, 0) });
     };
 
-    // Parse school and LGA information
-    const schoolName = result.schoolName || '';
-    const lgaName = result.lgaCd || '';
-    
-    // Try to extract school code and LGA code from examination number or use defaults
-    let lgaCode = '1';
-    let schoolCode = '1';
-    
-    // If we can extract codes from the examination number (e.g., format: LGACODE-SCHOOLCODE-NUMBER)
-    if (result.examinationNo) {
-      const parts = result.examinationNo.split('-');
-      if (parts.length >= 2) {
-        lgaCode = parts[0] || '1';
-        schoolCode = parts[1] || '1';
-      }
-    }
-
     // Draw outer border
-    const margin = 30;
+    const margin = 40;
     page.drawRectangle({
       x: margin,
       y: margin,
@@ -76,206 +60,213 @@ export async function GET(request: NextRequest) {
       borderWidth: 2,
     });
 
-    // Draw standardized header
-    const contentStartY = drawPDFHeader(page, bold, font, {
-      lgaCode,
-      lgaName: lgaName.toUpperCase().replace(/\s+/g, '-'),
-      schoolCode,
-      schoolName: schoolName.toUpperCase(),
-      year: result.sessionYr,
-    });
+    // Starting Y position
+    let currentY = height - 60;
 
-    // Draw data table header (like in the image)
-    const tableHeaderY = contentStartY - 20;
-    const colExamNo = 50;
-    const colNames = 150;
-    const colSex = 500;
+    // Header - FEDERAL REPUBLIC OF NIGERIA
+    centerText('FEDERAL REPUBLIC OF NIGERIA', 12, currentY, bold);
+    currentY -= 25;
+
+    // Try to embed logo
+    try {
+      const logoPath = path.join(process.cwd(), 'public', 'delta-logo.png');
+      const logoBytes = fs.readFileSync(logoPath);
+      const logoImage = await pdfDoc.embedPng(logoBytes);
+      const logoDims = logoImage.scale(0.15);
+      
+      page.drawImage(logoImage, {
+        x: (width - logoDims.width) / 2,
+        y: currentY - logoDims.height - 5,
+        width: logoDims.width,
+        height: logoDims.height,
+      });
+      currentY -= logoDims.height + 15;
+    } catch (err) {
+      console.error('Failed to load logo:', err);
+      currentY -= 20;
+    }
+
+    // Ministry title
+    centerText('MINISTRY OF PRIMARY EDUCATION ASABA,', 11, currentY, bold);
+    currentY -= 15;
+    centerText('Delta State.', 11, currentY, bold);
+    currentY -= 15;
+    centerText('Cognitive/Placement Certification Result', 10, currentY, font);
+    currentY -= 25;
+
+    // Dashed line separator
+    for (let x = margin + 10; x < width - margin - 10; x += 10) {
+      page.drawLine({
+        start: { x, y: currentY },
+        end: { x: x + 5, y: currentY },
+        thickness: 1,
+        color: rgb(0.6, 0.6, 0.6),
+      });
+    }
+    currentY -= 20;
+
+    // Helper function for drawing dashed lines
+    const drawDashedLine = (y: number) => {
+      for (let x = margin + 10; x < width - margin - 10; x += 10) {
+        page.drawLine({
+          start: { x, y },
+          end: { x: x + 5, y },
+          thickness: 0.8,
+          color: rgb(0.7, 0.7, 0.7),
+        });
+      }
+    };
+
+    const leftMargin = margin + 15;
+    const lineSpacing = 18;
+
+    // Year and Date Printed (same line, left and right aligned)
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    page.drawText(`Year: `, { x: leftMargin, y: currentY, size: 9, font });
+    page.drawText(`${result.sessionYr}`, { x: leftMargin + 30, y: currentY, size: 9, font: bold });
     
-    // Table header background
-    page.drawRectangle({
-      x: colExamNo - 5,
-      y: tableHeaderY - 5,
-      width: width - 2 * margin - 40,
-      height: 25,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
-    });
+    const datePrintedText = `Date Printed: ${dateStr}`;
+    const datePrintedWidth = font.widthOfTextAtSize(datePrintedText, 9);
+    page.drawText(datePrintedText, { x: width - margin - 15 - datePrintedWidth, y: currentY, size: 9, font });
+    currentY -= lineSpacing;
     
-    // Table headers
-    page.drawText('EXAMINATION NO.', { x: colExamNo, y: tableHeaderY + 3, size: 9, font: bold });
-    page.drawText('NAMES', { x: colNames, y: tableHeaderY + 3, size: 9, font: bold });
-    page.drawText('SEX', { x: colSex, y: tableHeaderY + 3, size: 9, font: bold });
-    
-    // Student data row
-    const dataRowY = tableHeaderY - 30;
-    page.drawRectangle({
-      x: colExamNo - 5,
-      y: dataRowY - 5,
-      width: width - 2 * margin - 40,
-      height: 25,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
-    });
-    
+    drawDashedLine(currentY);
+    currentY -= lineSpacing;
+
+    // Candidate Name and Sex (same line)
     const candidateName = [result.fName, result.mName, result.lName]
       .filter(Boolean)
-      .join(' ');
+      .join(' ')
+      .toUpperCase();
     
-    page.drawText(result.examinationNo || '', { x: colExamNo, y: dataRowY + 3, size: 9, font });
-    page.drawText(candidateName, { x: colNames, y: dataRowY + 3, size: 9, font });
-    page.drawText(result.sexCd || '', { x: colSex, y: dataRowY + 3, size: 9, font });
-
-    // Passport photo (top-left corner)
-    const photoSize = 110;
-    const photoX = margin + 5;
-    const photoY = height - margin - photoSize - 5;
+    page.drawText(`Candidate Name: `, { x: leftMargin, y: currentY, size: 9, font });
+    page.drawText(candidateName, { x: leftMargin + 95, y: currentY, size: 9, font: bold });
     
-    // Draw border for passport photo
-    page.drawRectangle({
-      x: photoX - 4,
-      y: photoY - 4,
-      width: photoSize + 8,
-      height: photoSize + 8,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1.5,
-    });
+    page.drawText(`Sex: `, { x: width - margin - 80, y: currentY, size: 9, font });
+    page.drawText(result.sexCd || 'N/A', { x: width - margin - 55, y: currentY, size: 9, font: bold });
+    currentY -= lineSpacing;
     
-    // Add placeholder for passport - you can replace this with actual candidate photo later
-    page.drawRectangle({
-      x: photoX,
-      y: photoY,
-      width: photoSize,
-      height: photoSize,
-      color: rgb(0.9, 0.9, 0.9),
-    });
+    drawDashedLine(currentY);
+    currentY -= lineSpacing;
+
+    // School
+    page.drawText(`School : `, { x: leftMargin, y: currentY, size: 9, font });
+    page.drawText((result.schoolName || 'N/A').toUpperCase(), { x: leftMargin + 45, y: currentY, size: 9, font: bold });
+    currentY -= lineSpacing;
     
-    // Add "PHOTO" text in the placeholder
-    page.drawText("PHOTO", {
-      x: photoX + 30,
-      y: photoY + photoSize / 2,
-      size: 14,
-      font: bold,
-      color: rgb(0.6, 0.6, 0.6),
-    });
+    drawDashedLine(currentY);
+    currentY -= lineSpacing;
 
-    // Additional candidate info below table
-    const infoY = dataRowY - 50;
-    const leftX = 50;
-    const lineH = 18;
+    // Local Government Area
+    page.drawText(`Local Government Area: `, { x: leftMargin, y: currentY, size: 9, font });
+    page.drawText((result.lgaCd || 'N/A').toUpperCase(), { x: leftMargin + 130, y: currentY, size: 9, font: bold });
+    currentY -= lineSpacing;
+    
+    drawDashedLine(currentY);
+    currentY -= lineSpacing;
 
-    const info = [
-      `Year: ${result.sessionYr || 'N/A'}`,
-      `School: ${result.schoolName || 'N/A'}`,
-      `Local Government Area: ${result.lgaCd || 'N/A'}`,
-    ];
-
-    info.forEach((text, index) => {
-      const y = infoY - index * lineH;
-      page.drawText(text, { x: leftX, y, size: 10, font });
-    });
-
-    // Separator line
-    const separatorY = infoY - info.length * lineH - 10;
-    page.drawLine({
-      start: { x: 40, y: separatorY },
-      end: { x: width - 40, y: separatorY },
-      thickness: 1,
-      color: rgb(0.6, 0.6, 0.6),
-    });
+    // Examination Number
+    page.drawText(`Examination Number: `, { x: leftMargin, y: currentY, size: 9, font });
+    page.drawText(result.examinationNo, { x: leftMargin + 115, y: currentY, size: 9, font: bold });
+    currentY -= lineSpacing;
+    
+    drawDashedLine(currentY);
+    currentY -= 25;
 
     // Subject table
-    const tableTop = separatorY - 30;
-    const col1 = 50;
-    const col2 = 400;
-    const rowH = 20;
-
-    // Header
-    page.drawText("Subject(s)", { x: col1, y: tableTop, size: 11, font: bold });
-    page.drawText("Grade", { x: col2, y: tableTop, size: 11, font: bold });
-    page.drawLine({
-      start: { x: col1, y: tableTop - 8 },
-      end: { x: width - 40, y: tableTop - 8 },
-      thickness: 1,
-      color: rgb(0, 0, 0),
+    const tableX = leftMargin;
+    const tableWidth = width - 2 * margin - 30;
+    const colWidth = tableWidth / 2;
+    
+    // Table header
+    page.drawRectangle({
+      x: tableX,
+      y: currentY - 20,
+      width: tableWidth,
+      height: 20,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
     });
+    
+    page.drawText('Subject(s)', { x: tableX + 10, y: currentY - 15, size: 9, font: bold });
+    page.drawText('Grade', { x: tableX + colWidth + 10, y: currentY - 15, size: 9, font: bold });
+    
+    // Vertical line between columns
+    page.drawLine({
+      start: { x: tableX + colWidth, y: currentY },
+      end: { x: tableX + colWidth, y: currentY - 20 },
+      thickness: 1,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    currentY -= 20;
 
-    // Rows
+    // Subject rows
     const subjects: [string, string | null][] = [
       ["ENGLISH STUDIES", result.engGrd],
       ["MATHEMATICS", result.aritGrd],
       ["GENERAL PAPER", result.gpGrd],
-      ["RELIGIOUS STUDIES", result.rgsGrd],
+      ["CHRISTIAN RELIGIOUS STUDIES", result.rgsGrd],
     ];
 
-    subjects.forEach(([subj, grade], i) => {
-      const y = tableTop - 30 - i * rowH;
-      page.drawText(subj, { x: col1, y, size: 10, font });
-
-      const gradeStr = grade || 'N/A';
-      const gradeColor = gradeStr === "A" ? rgb(0, 0.5, 0) : rgb(0.8, 0.4, 0);
-      page.drawText(gradeStr, { x: col2 + 5, y, size: 11, font: bold, color: gradeColor });
-
-      // Faint row line
-      page.drawLine({
-        start: { x: col1, y: y - 5 },
-        end: { x: width - 40, y: y - 5 },
-        thickness: 0.5,
-        color: rgb(0.85, 0.85, 0.85),
+    subjects.forEach(([subject, grade], index) => {
+      const rowHeight = 20;
+      page.drawRectangle({
+        x: tableX,
+        y: currentY - rowHeight,
+        width: tableWidth,
+        height: rowHeight,
+        borderColor: rgb(0.4, 0.4, 0.4),
+        borderWidth: 1,
       });
+      
+      page.drawText(subject, { x: tableX + 10, y: currentY - 15, size: 9, font });
+      page.drawText(grade || 'N/A', { x: tableX + colWidth + 10, y: currentY - 15, size: 9, font: bold });
+      
+      // Vertical line
+      page.drawLine({
+        start: { x: tableX + colWidth, y: currentY },
+        end: { x: tableX + colWidth, y: currentY - rowHeight },
+        thickness: 1,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+      
+      currentY -= rowHeight;
     });
+
+    currentY -= 25;
 
     // Remark
     if (result.remark) {
-      const remarkY = tableTop - 30 - subjects.length * rowH - 30;
-      page.drawText("Remark:", { x: col1, y: remarkY, size: 11, font: bold });
-      
-      // Yellow highlight background
-      const remarkTextX = col1 + 80;
-      const remarkTextWidth = bold.widthOfTextAtSize(result.remark, 11);
-      page.drawRectangle({
-        x: remarkTextX - 2,
-        y: remarkY - 3,
-        width: remarkTextWidth + 4,
-        height: 16,
-        color: rgb(1, 1, 0.7),
-      });
-      
-      page.drawText(result.remark, {
-        x: remarkTextX,
-        y: remarkY,
-        size: 11,
-        font: bold,
-        color: rgb(0, 0, 0),
-      });
+      page.drawText('Remark: ', { x: leftMargin, y: currentY, size: 9, font });
+      page.drawText(result.remark, { x: leftMargin + 50, y: currentY, size: 9, font: bold });
+      currentY -= 15;
+
+      // Dashed line
+      for (let x = margin + 10; x < width - margin - 10; x += 10) {
+        page.drawLine({
+          start: { x, y: currentY },
+          end: { x: x + 5, y: currentY },
+          thickness: 0.8,
+          color: rgb(0.7, 0.7, 0.7),
+        });
+      }
     }
 
-    // Footer + signature
-    const footerY = 70;
-    page.drawLine({
-      start: { x: 40, y: footerY + 15 },
-      end: { x: width - 40, y: footerY + 15 },
-      thickness: 0.5,
-      color: rgb(0.7, 0.7, 0.7),
-    });
-
-    const footerText = "DELTA STATE MINISTRY OF PRIMARY EDUCATION PORTAL - Powered by Vennad Limited";
-    page.drawText(footerText, {
-      x: 40,
-      y: footerY,
-      size: 8,
-      font,
-      color: rgb(0.4, 0.4, 0.4),
-    });
-
-    // Signature
-    page.drawText("_________________________", { x: width - 220, y: footerY, size: 10, font });
-    page.drawText("Authorized Signature", { 
-      x: width - 220, 
-      y: footerY - 15, 
-      size: 9, 
-      font, 
-      color: rgb(0.3, 0.3, 0.3) 
-    });
+    // Footer
+    const footerY = margin + 35;
+    
+    // Dashed line above footer
+    for (let x = margin + 10; x < width - margin - 10; x += 10) {
+      page.drawLine({
+        start: { x, y: footerY + 15 },
+        end: { x: x + 5, y: footerY + 15 },
+        thickness: 0.8,
+        color: rgb(0.6, 0.6, 0.6),
+      });
+    }
+    
+    centerText('DELTA STATE MINISTRY OF PRIMARY EDUCATION PORTAL', 9, footerY, font);
 
     // Save PDF
     const pdfBytes = await pdfDoc.save();

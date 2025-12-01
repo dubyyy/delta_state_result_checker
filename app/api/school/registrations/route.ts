@@ -155,13 +155,14 @@ interface RegistrationData {
   lastname: string;
   othername: string;
   firstname: string;
+  dateOfBirth?: string;
   gender: string;
   schoolType: string;
   passport: string | null;
-  english: { term1: string; term2: string; term3: string };
-  arithmetic: { term1: string; term2: string; term3: string };
-  general: { term1: string; term2: string; term3: string };
-  religious: { term1: string; term2: string; term3: string; type: string };
+  english: { term1?: string; term2?: string; term3?: string; year1?: string; year2?: string; year3?: string };
+  arithmetic: { term1?: string; term2?: string; term3?: string; year1?: string; year2?: string; year3?: string };
+  general: { term1?: string; term2?: string; term3?: string; year1?: string; year2?: string; year3?: string };
+  religious: { term1?: string; term2?: string; term3?: string; year1?: string; year2?: string; year3?: string; type: string };
   isLateRegistration?: boolean;
   year?: string;
   prcd?: number;
@@ -203,8 +204,25 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Map database fields (Term) to frontend fields (Year)
+    const mappedRegistrations = registrations.map((r) => ({
+      ...r,
+      englishYear1: r.englishTerm1,
+      englishYear2: r.englishTerm2,
+      englishYear3: r.englishTerm3,
+      arithmeticYear1: r.arithmeticTerm1,
+      arithmeticYear2: r.arithmeticTerm2,
+      arithmeticYear3: r.arithmeticTerm3,
+      generalYear1: r.generalTerm1,
+      generalYear2: r.generalTerm2,
+      generalYear3: r.generalTerm3,
+      religiousYear1: r.religiousTerm1,
+      religiousYear2: r.religiousTerm2,
+      religiousYear3: r.religiousTerm3,
+    }));
+
     return NextResponse.json(
-      { registrations },
+      { registrations: mappedRegistrations },
       { status: 200 }
     );
   } catch (error) {
@@ -273,6 +291,16 @@ export async function POST(req: NextRequest) {
     // Generate all unique accCodes in ONE batch query (10-100x faster!)
     const accCodes = await generateBatchAccCodes(prisma, registrations.length);
     
+    // Debug: Log first registration to verify continuous assessment data
+    if (registrations.length > 0) {
+      console.log('First registration continuous assessment data:', {
+        english: registrations[0].english,
+        arithmetic: registrations[0].arithmetic,
+        general: registrations[0].general,
+        religious: registrations[0].religious,
+      });
+    }
+    
     // Prepare data for bulk insert with pre-generated accCodes
     const studentData = registrations.map((reg: RegistrationData, index: number) => ({
       accCode: accCodes[index],
@@ -280,27 +308,40 @@ export async function POST(req: NextRequest) {
       firstname: reg.firstname,
       othername: reg.othername || '',
       lastname: reg.lastname,
+      dateOfBirth: reg.dateOfBirth ? new Date(reg.dateOfBirth) : null,
       gender: reg.gender,
       schoolType: reg.schoolType,
       passport: reg.passport,
-      englishTerm1: reg.english.term1 || '-',
-      englishTerm2: reg.english.term2 || '-',
-      englishTerm3: reg.english.term3 || '-',
-      arithmeticTerm1: reg.arithmetic.term1 || '-',
-      arithmeticTerm2: reg.arithmetic.term2 || '-',
-      arithmeticTerm3: reg.arithmetic.term3 || '-',
-      generalTerm1: reg.general.term1 || '-',
-      generalTerm2: reg.general.term2 || '-',
-      generalTerm3: reg.general.term3 || '-',
+      englishTerm1: (reg.english as any).term1 || (reg.english as any).year1 || '-',
+      englishTerm2: (reg.english as any).term2 || (reg.english as any).year2 || '-',
+      englishTerm3: (reg.english as any).term3 || (reg.english as any).year3 || '-',
+      arithmeticTerm1: (reg.arithmetic as any).term1 || (reg.arithmetic as any).year1 || '-',
+      arithmeticTerm2: (reg.arithmetic as any).term2 || (reg.arithmetic as any).year2 || '-',
+      arithmeticTerm3: (reg.arithmetic as any).term3 || (reg.arithmetic as any).year3 || '-',
+      generalTerm1: (reg.general as any).term1 || (reg.general as any).year1 || '-',
+      generalTerm2: (reg.general as any).term2 || (reg.general as any).year2 || '-',
+      generalTerm3: (reg.general as any).term3 || (reg.general as any).year3 || '-',
       religiousType: reg.religious.type || '',
-      religiousTerm1: reg.religious.term1 || '-',
-      religiousTerm2: reg.religious.term2 || '-',
-      religiousTerm3: reg.religious.term3 || '-',
+      religiousTerm1: (reg.religious as any).term1 || (reg.religious as any).year1 || '-',
+      religiousTerm2: (reg.religious as any).term2 || (reg.religious as any).year2 || '-',
+      religiousTerm3: (reg.religious as any).term3 || (reg.religious as any).year3 || '-',
       lateRegistration: reg.isLateRegistration || false,
       year: reg.year || '2025/2026',
       prcd: reg.prcd || 1,
       schoolId: decoded.schoolId,
     }));
+
+    // Debug: Log first mapped student data to verify continuous assessment mapping
+    if (studentData.length > 0) {
+      console.log('First mapped student data (continuous assessment):', {
+        englishTerm1: studentData[0].englishTerm1,
+        englishTerm2: studentData[0].englishTerm2,
+        englishTerm3: studentData[0].englishTerm3,
+        arithmeticTerm1: studentData[0].arithmeticTerm1,
+        generalTerm1: studentData[0].generalTerm1,
+        religiousTerm1: studentData[0].religiousTerm1,
+      });
+    }
 
     // If override is true, replace all existing registrations for this school
     if (override === true) {

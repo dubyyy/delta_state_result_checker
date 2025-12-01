@@ -80,6 +80,7 @@ export async function PATCH(
         firstname: updateData.firstname,
         othername: updateData.othername || '',
         lastname: updateData.lastname,
+        dateOfBirth: updateData.dateOfBirth ? new Date(updateData.dateOfBirth) : null,
         gender: updateData.gender,
         schoolType: updateData.schoolType,
         englishTerm1: updateData.englishTerm1,
