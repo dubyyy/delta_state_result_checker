@@ -6,6 +6,9 @@ export default withAuth({
   },
 });
 
+// Only protect /admin pages, excluding API routes
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+  ],
 };
