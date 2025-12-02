@@ -29,7 +29,7 @@ const PortalPage = () => {
       variant: "primary" as const,
     },
     {
-      title: "Post Registration",
+      title: "Post Registrationbhuh",
       description: "Manage post-registration activities and updates",
       icon: UserPlus,
       href: "/post-registration",

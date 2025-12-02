@@ -551,22 +551,11 @@ const SchoolRegistration = () => {
       }
       
       const data = await response.json();
-      const allRegs = data.registrations || [];
       
-      // Find the highest existing sequence number (last 4 digits)
-      let maxSequence = 0;
-      allRegs.forEach((reg: any) => {
-        if (reg.studentNumber) {
-          // Extract last 4 digits from student number
-          const lastFourDigits = reg.studentNumber.slice(-4);
-          const sequence = parseInt(lastFourDigits, 10);
-          if (!isNaN(sequence) && sequence > maxSequence) {
-            maxSequence = sequence;
-          }
-        }
-      });
+      // Use the maxStudentNumber from API which checks both StudentRegistration and PostRegistration
+      const maxSequence = data.maxStudentNumber || 0;
       
-      // Increment by 1 for the new late registration
+      // Increment by 1 for the new registration
       const nextSequence = (maxSequence + 1).toString().padStart(4, '0');
       return `${x}${fff}${nextSequence}`;
     } catch (error) {
@@ -868,31 +857,17 @@ const SchoolRegistration = () => {
                   
                   // Handle student number assignment based on registration mode
                   // Use late registration mode if either manually enabled OR registration is closed
-                  if (isLateRegistrationMode || !registrationOpen) {
-                    // Late registration: Generate incremental student number from database
-                    const incrementalNumber = await generateIncrementalStudentNumber(lgaCode, schoolCode);
-                    newRegistration.studentNumber = incrementalNumber;
-                    
-                    // Add to registrations without recomputing
-                    const withNew = [...registrations, newRegistration];
-                    setRegistrations(withNew);
-                    
-                    // Save only the new late registration
-                    await saveRegistrationsToServer([newRegistration]);
-                    await loadRegistrationsFromServer();
-                  } else {
-                    // Normal registration: Recompute all student numbers alphabetically
-                    const withNew = [...registrations, newRegistration];
-                    const recomputed = recomputeStudentNumbers(lgaCode, schoolCode, withNew);
-                    setRegistrations(recomputed);
-                    
-                    // Save only the newly added registration with its final studentNumber
-                    const savedNew = recomputed.find(r => r.id === newRegistration.id);
-                    if (savedNew) {
-                      await saveRegistrationsToServer([savedNew]);
-                      await loadRegistrationsFromServer();
-                    }
-                  }
+                  // Post-registration always uses incremental numbering continuing from school-registration
+                  const incrementalNumber = await generateIncrementalStudentNumber(lgaCode, schoolCode);
+                  newRegistration.studentNumber = incrementalNumber;
+                  
+                  // Add to registrations without recomputing
+                  const withNew = [...registrations, newRegistration];
+                  setRegistrations(withNew);
+                  
+                  // Save the new registration
+                  await saveRegistrationsToServer([newRegistration]);
+                  await loadRegistrationsFromServer();
                   setStudentCounter(studentCounter + 1); // Increment counter
                   e.currentTarget.reset();
                   setSelectedImage(null);

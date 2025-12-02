@@ -204,6 +204,29 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Also fetch StudentRegistration to find the max student number across both tables
+    const studentRegistrations = await prisma.studentRegistration.findMany({
+      where: {
+        schoolId: decoded.schoolId,
+      },
+      select: {
+        studentNumber: true,
+      },
+    });
+
+    // Calculate the maximum student number from both tables
+    let maxStudentNumber = 0;
+    
+    [...studentRegistrations, ...registrations].forEach((reg) => {
+      if (reg.studentNumber) {
+        const lastFour = reg.studentNumber.slice(-4);
+        const num = parseInt(lastFour, 10);
+        if (!isNaN(num) && num > maxStudentNumber) {
+          maxStudentNumber = num;
+        }
+      }
+    });
+
     // Map database fields (Term) to frontend fields (Year)
     const mappedRegistrations = registrations.map((r) => ({
       ...r,
@@ -222,7 +245,7 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json(
-      { registrations: mappedRegistrations },
+      { registrations: mappedRegistrations, maxStudentNumber },
       { status: 200 }
     );
   } catch (error) {
