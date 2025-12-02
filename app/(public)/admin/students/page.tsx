@@ -78,11 +78,28 @@ export default function Students() {
 
       const response = await fetch(`/api/admin/students?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json();
-        setStudents(data);
+        const result = await response.json();
+        // Ensure we always set an array
+        if (result && Array.isArray(result.data)) {
+          setStudents(result.data);
+        } else if (result && result.error) {
+          console.error("API error:", result.error);
+          setStudents([]);
+          toast.error(result.error);
+        } else {
+          console.error("Invalid data structure from API:", result);
+          setStudents([]);
+          toast.error("Received invalid data from server");
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Request failed:", errorData);
+        setStudents([]);
+        toast.error(errorData.error || "Failed to load students");
       }
     } catch (error) {
       console.error("Failed to fetch students:", error);
+      setStudents([]);
       toast.error("Failed to load students");
     } finally {
       setLoading(false);
@@ -90,7 +107,7 @@ export default function Students() {
   }
 
   function exportAsCSV() {
-    if (students.length === 0) {
+    if (!Array.isArray(students) || students.length === 0) {
       toast.error("No data to export");
       return;
     }
@@ -168,6 +185,10 @@ export default function Students() {
 
   async function downloadAllImages() {
     // Filter students who have passport images
+    if (!Array.isArray(students)) {
+      toast.error("No student data available");
+      return;
+    }
     const studentsWithImages = students.filter(student => student.passport && student.passport.trim() !== "");
     
     if (studentsWithImages.length === 0) {
@@ -341,10 +362,10 @@ export default function Students() {
 
       <Card className="overflow-hidden w-full">
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Registered Students ({students.length})</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Registered Students ({Array.isArray(students) ? students.length : 0})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {students.length === 0 ? (
+          {!Array.isArray(students) || students.length === 0 ? (
             <p className="text-center py-8 text-sm text-muted-foreground">No students found</p>
           ) : (
             <div className="overflow-x-auto w-full" style={{ maxWidth: '100%' }}>
@@ -394,7 +415,7 @@ export default function Students() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {students.map((student) => {
+                    {Array.isArray(students) && students.map((student) => {
                       const initials = `${student.lastname[0]}${student.firstname[0]}`
                         .toUpperCase();
                       
