@@ -86,6 +86,7 @@ model School {
   registrationOpen     Boolean               @default(true)
   accessPin            String?
   studentRegistrations StudentRegistration[]
+  postRegistrations    PostRegistration[]
 
   @@unique([lgaCode, schoolCode])
   @@index([lgaCode])
@@ -142,6 +143,42 @@ model AccessPin {
 
   @@index([pin])
   @@index([isActive])
+}
+
+model PostRegistration {
+  id               String    @id @default(cuid())
+  studentNumber    String    @unique
+  firstname        String
+  othername        String?
+  lastname         String
+  dateOfBirth      DateTime?
+  gender           String
+  schoolType       String
+  passport         String?
+  englishTerm1     String?
+  englishTerm2     String?
+  englishTerm3     String?
+  arithmeticTerm1  String?
+  arithmeticTerm2  String?
+  arithmeticTerm3  String?
+  generalTerm1     String?
+  generalTerm2     String?
+  generalTerm3     String?
+  religiousType    String?
+  religiousTerm1   String?
+  religiousTerm2   String?
+  religiousTerm3   String?
+  schoolId         String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  accCode          String    @unique @default(cuid())
+  lateRegistration Boolean   @default(false)
+  prcd             Int       @default(1)
+  year             String    @default("2025/2026")
+  school           School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([studentNumber])
 }
 
 model SchoolData {

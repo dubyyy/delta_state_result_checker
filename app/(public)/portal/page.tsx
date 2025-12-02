@@ -8,6 +8,7 @@ import {
   School,
   FileText,
   AlertCircle,
+  UserPlus,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -25,6 +26,13 @@ const PortalPage = () => {
       description: "Register new students for primary education",
       icon: School,
       href: "/school-registration",
+      variant: "primary" as const,
+    },
+    {
+      title: "Post Registration",
+      description: "Manage post-registration activities and updates",
+      icon: UserPlus,
+      href: "/post-registration",
       variant: "primary" as const,
     },
   
