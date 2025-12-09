@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const lga = searchParams.get("lga");
     const schoolCode = searchParams.get("schoolCode");
+    const lateRegistration = searchParams.get("lateRegistration");
     
     // Pagination parameters
     const page = parseInt(searchParams.get("page") || "1");
@@ -65,6 +66,11 @@ export async function GET(request: NextRequest) {
         ...where.school,
         schoolCode: schoolCode,
       };
+    }
+    
+    // Filter by late registration status
+    if (lateRegistration && lateRegistration !== "all") {
+      where.lateRegistration = lateRegistration === "true";
     }
     
     // Get total count for pagination metadata

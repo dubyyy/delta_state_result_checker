@@ -60,14 +60,18 @@ export default function Students() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLGA, setSelectedLGA] = useState("all");
   const [schoolCodeInput, setSchoolCodeInput] = useState("");
+  const [lateRegistration, setLateRegistration] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Ensure students is always an array
+  const safeStudents = Array.isArray(students) ? students : [];
   
   // All LGAs in Delta State from the mapping
   const allLGAs = Object.values(LGA_MAPPING).sort();
 
   useEffect(() => {
     fetchStudents();
-  }, [searchTerm, selectedLGA, schoolCodeInput]);
+  }, [searchTerm, selectedLGA, schoolCodeInput, lateRegistration]);
 
   async function fetchStudents() {
     try {
@@ -75,13 +79,15 @@ export default function Students() {
       if (searchTerm) params.append("search", searchTerm);
       if (selectedLGA && selectedLGA !== "all") params.append("lga", selectedLGA);
       if (schoolCodeInput) params.append("schoolCode", schoolCodeInput);
+      if (lateRegistration && lateRegistration !== "all") params.append("lateRegistration", lateRegistration);
 
       const response = await fetch(`/api/admin/students?${params.toString()}`);
       if (response.ok) {
         const result = await response.json();
         // Ensure we always set an array
         if (result && Array.isArray(result.data)) {
-          setStudents(result.data);
+          // Double-check that result.data is truly an array before setting
+          setStudents(Array.isArray(result.data) ? result.data : []);
         } else if (result && result.error) {
           console.error("API error:", result.error);
           setStudents([]);
@@ -107,12 +113,13 @@ export default function Students() {
   }
 
   function exportAsCSV() {
-    if (!Array.isArray(students) || students.length === 0) {
+    if (safeStudents.length === 0) {
       toast.error("No data to export");
       return;
     }
 
     // Create CSV content with header and student data
+    // Excluded: s/n, rgstype, schtype, lgacode, schcode per user request
     const headers = [
       "Year",
       "PRCD",
@@ -122,7 +129,6 @@ export default function Students() {
       "Other Name",
       "Last Name",
       "Gender",
-      "School Type",
       "ENG1",
       "ENG2",
       "ENG3",
@@ -138,7 +144,7 @@ export default function Students() {
     ];
     const csvRows = [headers.join(",")];
 
-    students.forEach(student => {
+    safeStudents.forEach(student => {
       const row = [
         student.year || "",
         student.prcd || "",
@@ -148,7 +154,6 @@ export default function Students() {
         `"${student.othername || ""}"`,
         `"${student.lastname}"`,
         student.gender,
-        student.schoolType,
         student.englishTerm1 || "",
         student.englishTerm2 || "",
         student.englishTerm3 || "",
@@ -180,16 +185,16 @@ export default function Students() {
     link.click();
     document.body.removeChild(link);
     
-    toast.success(`Exported ${students.length} students to CSV successfully`);
+    toast.success(`Exported ${safeStudents.length} students to CSV successfully`);
   }
 
   async function downloadAllImages() {
     // Filter students who have passport images
-    if (!Array.isArray(students)) {
+    if (safeStudents.length === 0) {
       toast.error("No student data available");
       return;
     }
-    const studentsWithImages = students.filter(student => student.passport && student.passport.trim() !== "");
+    const studentsWithImages = safeStudents.filter(student => student.passport && student.passport.trim() !== "");
     
     if (studentsWithImages.length === 0) {
       toast.error("No student images found to download");
@@ -323,12 +328,24 @@ export default function Students() {
                 />
               </div>
 
+              <Select value={lateRegistration} onValueChange={setLateRegistration}>
+                <SelectTrigger className="w-full sm:w-[200px] text-sm sm:text-base">
+                  <SelectValue placeholder="Registration Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Registrations</SelectItem>
+                  <SelectItem value="true">Late Registration</SelectItem>
+                  <SelectItem value="false">Regular Registration</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => {
                   setSelectedLGA("all");
                   setSchoolCodeInput("");
+                  setLateRegistration("all");
                 }}
                 className="text-xs sm:text-sm"
               >
@@ -362,10 +379,10 @@ export default function Students() {
 
       <Card className="overflow-hidden w-full">
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Registered Students ({Array.isArray(students) ? students.length : 0})</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Registered Students ({safeStudents.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {!Array.isArray(students) || students.length === 0 ? (
+          {safeStudents.length === 0 ? (
             <p className="text-center py-8 text-sm text-muted-foreground">No students found</p>
           ) : (
             <div className="overflow-x-auto w-full" style={{ maxWidth: '100%' }}>
@@ -415,7 +432,7 @@ export default function Students() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(students) && students.map((student) => {
+                    {safeStudents.map((student) => {
                       const initials = `${student.lastname[0]}${student.firstname[0]}`
                         .toUpperCase();
                       
