@@ -1,12 +1,48 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { AdminPasswordPrompt } from "@/components/AdminPasswordPrompt";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const [isVerified, setIsVerified] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    // Check if already verified
+    async function checkVerification() {
+      try {
+        const response = await fetch("/api/admin/verify-password");
+        const data = await response.json();
+        setIsVerified(data.verified);
+      } catch (error) {
+        console.error("Failed to check verification:", error);
+        setIsVerified(false);
+      } finally {
+        setIsChecking(false);
+      }
+    }
+
+    checkVerification();
+  }, []);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isVerified) {
+    return <AdminPasswordPrompt onVerified={() => setIsVerified(true)} />;
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
