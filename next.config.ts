@@ -8,10 +8,10 @@ const nextConfig: NextConfig = {
   // Output optimization for serverless deployment
   output: 'standalone',
   
-  // Turbopack configuration
-  turbopack: {
-    root: process.cwd(), // Set the correct root directory
-  },
+  // Turbopack configuration (disabled due to HMR issues in 16.0.8)
+  // turbopack: {
+  //   root: process.cwd(), // Set the correct root directory
+  // },
   
   // Optimize images
   images: {
