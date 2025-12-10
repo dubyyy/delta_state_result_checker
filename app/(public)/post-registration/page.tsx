@@ -5,7 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, Edit2, X, Trash2, CheckCircle2, AlertCircle, Printer, Save } from "lucide-react";
+import { ArrowLeft, Upload, Edit2, X, Trash2, CheckCircle2, AlertCircle, Printer, Save, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import schoolsData from '@/data.json';
@@ -115,6 +125,9 @@ const SchoolRegistration = () => {
   const [showFinishConfirmModal, setShowFinishConfirmModal] = useState<boolean>(false);
   const [registrationOpen, setRegistrationOpen] = useState<boolean>(true);
   const [checkingRegistrationStatus, setCheckingRegistrationStatus] = useState<boolean>(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState<boolean>(false);
+  const [duplicateNames, setDuplicateNames] = useState<Array<{firstname: string, lastname: string, othername: string, studentNumber: string}>>([]);
+  const [pendingRegistration, setPendingRegistration] = useState<Registration | null>(null);
 
   // Check registration status from server
   const checkRegistrationStatus = async (schoolId: string) => {
@@ -140,6 +153,48 @@ const SchoolRegistration = () => {
       console.error('Error checking registration status:', error);
     } finally {
       setCheckingRegistrationStatus(false);
+    }
+  };
+
+  // Check for duplicate names before saving
+  const checkForDuplicates = async (student: { firstname: string, lastname: string, othername: string }): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem('schoolToken');
+      if (!token) {
+        setSaveMessage({ type: 'error', text: 'Authentication token not found. Please login again.' });
+        return false;
+      }
+
+      const response = await fetch('/api/school/check-duplicate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          students: [{
+            firstname: student.firstname,
+            lastname: student.lastname,
+            othername: student.othername,
+          }],
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to check duplicates');
+        return false;
+      }
+
+      const data = await response.json();
+      if (data.hasDuplicates && data.duplicates.length > 0) {
+        setDuplicateNames(data.duplicates);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+      return false;
     }
   };
 
@@ -564,6 +619,45 @@ const SchoolRegistration = () => {
     }
   };
 
+  // Process registration after duplicate check or user confirmation
+  const processRegistration = async (newRegistration: Registration) => {
+    // Post-registration always uses incremental numbering continuing from school-registration
+    const incrementalNumber = await generateIncrementalStudentNumber(lgaCode, schoolCode);
+    newRegistration.studentNumber = incrementalNumber;
+    
+    // Add to registrations without recomputing
+    const withNew = [...registrations, newRegistration];
+    setRegistrations(withNew);
+    
+    // Save only the new registration
+    await saveRegistrationsToServer([newRegistration]);
+    await loadRegistrationsFromServer();
+    
+    setStudentCounter(studentCounter + 1);
+    
+    // Reset form fields
+    setSelectedImage(null);
+    setGender("");
+    setSchoolType("");
+    setReligiousType("");
+    setLastname("");
+    setFirstname("");
+    setOthername("");
+    setDateOfBirth("");
+    setEnglishYear1("");
+    setEnglishYear2("");
+    setEnglishYear3("");
+    setArithmeticYear1("");
+    setArithmeticYear2("");
+    setArithmeticYear3("");
+    setGeneralYear1("");
+    setGeneralYear2("");
+    setGeneralYear3("");
+    setReligiousYear1("");
+    setReligiousYear2("");
+    setReligiousYear3("");
+  };
+
   // Helper function to limit score input to 2 digits
   const handleScoreInput = (e: React.FormEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
@@ -855,41 +949,23 @@ const SchoolRegistration = () => {
                     isLateRegistration: isLateRegistrationMode || !registrationOpen,
                   };
                   
-                  // Handle student number assignment based on registration mode
-                  // Use late registration mode if either manually enabled OR registration is closed
-                  // Post-registration always uses incremental numbering continuing from school-registration
-                  const incrementalNumber = await generateIncrementalStudentNumber(lgaCode, schoolCode);
-                  newRegistration.studentNumber = incrementalNumber;
-                  
-                  // Add to registrations without recomputing
-                  const withNew = [...registrations, newRegistration];
-                  setRegistrations(withNew);
-                  
-                  // Save the new registration
-                  await saveRegistrationsToServer([newRegistration]);
-                  await loadRegistrationsFromServer();
-                  setStudentCounter(studentCounter + 1); // Increment counter
+                  // Check for duplicate names before proceeding
+                  const hasDuplicate = await checkForDuplicates({
+                    firstname: newRegistration.firstname,
+                    lastname: newRegistration.lastname,
+                    othername: newRegistration.othername,
+                  });
+
+                  if (hasDuplicate) {
+                    // Store the pending registration and show duplicate dialog
+                    setPendingRegistration(newRegistration);
+                    setShowDuplicateDialog(true);
+                    return;
+                  }
+
+                  // No duplicate found, proceed with registration
+                  await processRegistration(newRegistration);
                   e.currentTarget.reset();
-                  setSelectedImage(null);
-                  setGender("");
-                  setSchoolType("");
-                  setReligiousType("");
-                  setLastname("");
-                  setFirstname("");
-                  setOthername("");
-                  setDateOfBirth("");
-                  setEnglishYear1("");
-                  setEnglishYear2("");
-                  setEnglishYear3("");
-                  setArithmeticYear1("");
-                  setArithmeticYear2("");
-                  setArithmeticYear3("");
-                  setGeneralYear1("");
-                  setGeneralYear2("");
-                  setGeneralYear3("");
-                  setReligiousYear1("");
-                  setReligiousYear2("");
-                  setReligiousYear3("");
                 }}>
                 <div className="space-y-2">
                   <Label htmlFor="lastname">Lastname/Surname</Label>
@@ -1734,6 +1810,64 @@ const SchoolRegistration = () => {
           )}
         </div>
       </main>
+
+      {/* Duplicate Name Detection Dialog */}
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+            </div>
+            <AlertDialogTitle className="text-center text-xl font-bold text-gray-900">
+              Student Already Registered
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-2">
+              <p className="text-center text-gray-600">
+                This student has already been added to the system:
+              </p>
+              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 space-y-2">
+                {duplicateNames.map((dup, idx) => (
+                  <div key={idx} className="text-center">
+                    <p className="text-lg font-bold text-red-900">
+                      {dup.firstname} {dup.othername} {dup.lastname}
+                    </p>
+                    <p className="text-sm text-red-700 mt-1">
+                      Student Number: <span className="font-semibold">{dup.studentNumber}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-sm text-gray-500 italic">
+                Would you like to register this student again anyway?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center gap-3">
+            <AlertDialogCancel 
+              onClick={() => {
+                setPendingRegistration(null);
+                setDuplicateNames([]);
+              }}
+              className="w-full sm:w-auto"
+            >
+              No, Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (pendingRegistration) {
+                  await processRegistration(pendingRegistration);
+                  setPendingRegistration(null);
+                  setDuplicateNames([]);
+                  setShowDuplicateDialog(false);
+                }
+              }}
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+            >
+              Yes, Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
