@@ -29,7 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, LockKeyhole, Key, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, LockKeyhole, Key, Copy, Ban, Church } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -55,6 +55,8 @@ interface School {
   studentCount: number;
   status: string;
   accessPin: string | null;
+  blocked: boolean;
+  religiousClassification: string | null;
   createdAt: string;
 }
 
@@ -195,6 +197,50 @@ export default function Schools() {
     } catch (error) {
       console.error("Failed to bulk generate PINs:", error);
       toast.error("Failed to generate PINs");
+    }
+  };
+
+  const handleBlockSchool = async (schoolId: string, blocked: boolean) => {
+    try {
+      const response = await fetch("/api/admin/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "school", id: schoolId, blocked }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message);
+        await fetchSchools();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update block status");
+      }
+    } catch (error) {
+      console.error("Failed to update block status:", error);
+      toast.error("Failed to update block status");
+    }
+  };
+
+  const handleUpdateClassification = async (schoolId: string, classification: string | null) => {
+    try {
+      const response = await fetch("/api/admin/school-classification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId, classification }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message);
+        await fetchSchools();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update classification");
+      }
+    } catch (error) {
+      console.error("Failed to update classification:", error);
+      toast.error("Failed to update classification");
     }
   };
 
@@ -341,6 +387,8 @@ export default function Schools() {
                   <TableHead className="text-xs sm:text-sm">LGA</TableHead>
                   <TableHead className="text-xs sm:text-sm">Access PIN</TableHead>
                   <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Blocked</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Religion</TableHead>
                   <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -384,8 +432,18 @@ export default function Schools() {
                       </Badge>
                     </TableCell>
 
+                    <TableCell>
+                      <Badge variant={school.blocked ? "destructive" : "outline"}>
+                        {school.blocked ? "Blocked" : "Active"}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell className="text-xs sm:text-sm">
+                      {school.religiousClassification || "-"}
+                    </TableCell>
+
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1 sm:gap-2">
+                      <div className="flex justify-end gap-1 sm:gap-2 flex-wrap">
                         {/* Generate/Regenerate PIN */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -463,6 +521,72 @@ export default function Schools() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+
+                        {/* Block/Unblock */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant={school.blocked ? "default" : "destructive"}
+                              size="sm" 
+                              className="h-8 w-8 p-0 sm:h-9 sm:w-9"
+                            >
+                              <Ban className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {school.blocked ? "Unblock" : "Block"} School
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to {school.blocked ? "unblock" : "block"} {school.name}?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleBlockSchool(school.id, !school.blocked)}
+                              >
+                                {school.blocked ? "Unblock" : "Block"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        {/* Religious Classification */}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0 sm:h-9 sm:w-9">
+                              <Church className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Update Religious Classification</DialogTitle>
+                              <DialogDescription>
+                                Set religious classification for {school.name}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <Select
+                                defaultValue={school.religiousClassification || "None"}
+                                onValueChange={(value) => {
+                                  const classification = value === "None" ? null : value;
+                                  handleUpdateClassification(school.id, classification);
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select classification" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Christian">Christian</SelectItem>
+                                  <SelectItem value="Muslim">Muslim</SelectItem>
+                                  <SelectItem value="None">None</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
 
                         {/* Delete */}
                         <AlertDialog>

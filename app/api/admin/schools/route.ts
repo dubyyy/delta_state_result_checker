@@ -45,6 +45,8 @@ export async function GET(req: NextRequest) {
       studentCount: school._count.studentRegistrations,
       status: school.registrationOpen ? "Open" : "Closed",
       accessPin: school.accessPin,
+      blocked: school.blocked,
+      religiousClassification: school.religiousClassification,
       createdAt: school.createdAt,
     }));
 
@@ -125,6 +127,8 @@ export async function POST(request: NextRequest) {
       studentCount: 0,
       status: "Open",
       accessPin: school.accessPin,
+      blocked: school.blocked,
+      religiousClassification: school.religiousClassification,
       createdAt: school.createdAt,
     }, { status: 201 });
   } catch (error) {

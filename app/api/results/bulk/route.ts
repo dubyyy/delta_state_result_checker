@@ -20,6 +20,7 @@ interface CSVRow {
   GPGRD: string;
   RGS: string;
   RGSGRD: string;
+  RGSTYPE: string; // Added: Religious type (IRS/CRS)
   REMARK: string;
   ACCCESS_PIN: string;
 }
@@ -68,6 +69,7 @@ function mapCSVRowToResult(row: CSVRow) {
     gpGrd: row.GPGRD || null,
     rgs: row.RGS ? parseFloat(row.RGS) : null,
     rgsGrd: row.RGSGRD || null,
+    rgstype: row.RGSTYPE || null, // Added: Religious type (IRS/CRS)
     remark: row.REMARK || null,
     accessPin: row.ACCCESS_PIN,
   };

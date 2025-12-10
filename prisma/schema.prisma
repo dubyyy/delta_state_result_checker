@@ -70,23 +70,27 @@ model Result {
   gpGrd         String?
   rgs           Float?
   rgsGrd        String?
+  rgstype       String? // Added: Religious type (IRS/CRS)
   remark        String?
   accessPin     String
+  blocked       Boolean @default(false) // Added: Block status
 }
 
 
 model School {
-  id                   String                @id @default(cuid())
-  lgaCode              String
-  schoolCode           String
-  schoolName           String
-  password             String
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  registrationOpen     Boolean               @default(true)
-  accessPin            String?
-  studentRegistrations StudentRegistration[]
-  postRegistrations    PostRegistration[]
+  id                      String                @id @default(cuid())
+  lgaCode                 String
+  schoolCode              String
+  schoolName              String
+  password                String
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  registrationOpen        Boolean               @default(true)
+  accessPin               String?
+  blocked                 Boolean               @default(false) // Added: Block status
+  religiousClassification String?               // Added: Religious classification (Christian/Muslim)
+  studentRegistrations    StudentRegistration[]
+  postRegistrations       PostRegistration[]
 
   @@unique([lgaCode, schoolCode])
   @@index([lgaCode])
@@ -188,6 +192,7 @@ model SchoolData {
   schCode   String
   progID    String
   schName   String
+  blocked   Boolean  @default(false) // Added: Block status
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

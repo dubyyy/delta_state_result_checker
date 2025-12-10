@@ -120,7 +120,7 @@ const ResultFormContent = () => {
               <div className="bg-muted p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">Required CSV Format:</h3>
                 <code className="text-xs block overflow-x-auto">
-                  SESSIONYR, FNAME, MNAME, LNAME, SEXCD, INSTITUTIONCD, SCHOOLNAME, LGACD, EXAMINATIONNO, ENG, ENGGRD, ARIT, ARITGRD, GP, GPGRD, RGS, RGSGRD, REMARK, ACCCESS_PIN
+                  SESSIONYR, FNAME, MNAME, LNAME, SEXCD, INSTITUTIONCD, SCHOOLNAME, LGACD, EXAMINATIONNO, ENG, ENGGRD, ARIT, ARITGRD, GP, GPGRD, RGS, RGSGRD, RGSTYPE, REMARK, ACCCESS_PIN
                 </code>
               </div>
 

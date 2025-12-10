@@ -13,7 +13,8 @@ import {
   KeyRound,
   FileJson,
   Key,
-  ClipboardList
+  ClipboardList,
+  Wrench
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -32,6 +33,11 @@ const navItems = [
     title: "Schools",
     href: "/admin/schools",
     icon: School,
+  },
+  {
+    title: "Management Console",
+    href: "/admin/manage",
+    icon: Wrench,
   },
   {
     title: "Access PINs",
