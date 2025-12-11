@@ -4,7 +4,7 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 /**
  * DELETE /api/admin/delete
- * Body: { type: 'school' | 'student' | 'lga', id?: string, examNumber?: string, lgaCode?: string }
+ * Body: { type: 'school' | 'student' | 'lga', schoolCode?: string, examNumber?: string, lgaCode?: string }
  */
 export async function DELETE(req: NextRequest) {
   // Rate limiting
@@ -15,17 +15,20 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { type, id, examNumber, lgaCode } = body;
+    const { type, schoolCode, examNumber, lgaCode } = body;
 
-    if (type === 'school' && id) {
-      // Delete a school by ID (cascade will delete related students)
-      const school = await prisma.school.delete({
-        where: { id },
+    if (type === 'school' && schoolCode) {
+      // Delete all results for a school by school code
+      const resultsDeleted = await prisma.result.deleteMany({
+        where: { institutionCd: schoolCode },
       });
 
       return NextResponse.json({
         success: true,
-        message: `School ${school.schoolName} deleted successfully`,
+        message: `Deleted ${resultsDeleted.count} result(s) for school ${schoolCode}`,
+        details: {
+          resultsDeleted: resultsDeleted.count,
+        },
       });
     }
 

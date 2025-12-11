@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Filter, Download, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { LGA_MAPPING } from "@/lib/lga-mapping";
+import { LGA_MAPPING, getLGACode } from "@/lib/lga-mapping";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -47,6 +47,8 @@ interface Student {
   
   // Additional info
   lga: string;
+  lgaCode?: string;
+  lCode?: string;
   schoolCode: string;
   schoolName: string;
   date: string;
@@ -141,11 +143,20 @@ export default function Students() {
       "GP3",
       "RGS1",
       "RGS2",
-      "RGS3"
+      "RGS3",
+      "rgsType",
+      "schType",
+      "schcode",
+      "lgacode"
     ];
     const csvRows = [headers.join(",")];
 
     safeStudents.forEach(student => {
+      // Map religious type to numeric values
+      const religiousTypeCode = student.religiousType?.toLowerCase() === "christian" ? "1" 
+        : student.religiousType?.toLowerCase() === "islam" ? "2" 
+        : "";
+      
       const row = [
         student.year || "",
         student.prcd || "",
@@ -166,7 +177,11 @@ export default function Students() {
         student.generalTerm3 || "",
         student.religiousTerm1 || "",
         student.religiousTerm2 || "",
-        student.religiousTerm3 || ""
+        student.religiousTerm3 || "",
+        religiousTypeCode,
+        student.schoolType || "",
+        student.schoolCode || "",
+        student.lCode || ""
       ];
       csvRows.push(row.join(","));
     });

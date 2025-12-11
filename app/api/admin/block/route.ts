@@ -4,7 +4,7 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 /**
  * POST /api/admin/block
- * Body: { type: 'school' | 'student' | 'lga', id?: string, examNumber?: string, lgaCode?: string, blocked: boolean }
+ * Body: { type: 'school' | 'student' | 'lga', schoolCode?: string, examNumber?: string, lgaCode?: string, blocked: boolean }
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { type, id, examNumber, lgaCode, blocked } = body;
+    const { type, schoolCode, examNumber, lgaCode, blocked } = body;
 
     if (typeof blocked !== 'boolean') {
       return NextResponse.json(
@@ -24,20 +24,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (type === 'school' && id) {
-      // Block/unblock a school
-      const school = await prisma.school.update({
-        where: { id },
+    if (type === 'school' && schoolCode) {
+      // Block/unblock all results for a school by school code
+      const resultsUpdated = await prisma.result.updateMany({
+        where: { institutionCd: schoolCode },
         data: { blocked },
       });
 
       return NextResponse.json({
         success: true,
-        message: `School ${school.schoolName} ${blocked ? 'blocked' : 'unblocked'} successfully`,
-        school: {
-          id: school.id,
-          name: school.schoolName,
-          blocked: school.blocked,
+        message: `${blocked ? 'Blocked' : 'Unblocked'} ${resultsUpdated.count} result(s) for school ${schoolCode}`,
+        details: {
+          resultsUpdated: resultsUpdated.count,
         },
       });
     }
@@ -67,24 +65,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (type === 'lga' && lgaCode) {
-      // Block/unblock all schools in an LGA
-      const schoolsUpdated = await prisma.school.updateMany({
-        where: { lgaCode },
-        data: { blocked },
-      });
-
-      // Also update SchoolData
-      const schoolDataUpdated = await prisma.schoolData.updateMany({
-        where: { lgaCode },
+      // Block/unblock all results in an LGA
+      const resultsUpdated = await prisma.result.updateMany({
+        where: { lgaCd: lgaCode },
         data: { blocked },
       });
 
       return NextResponse.json({
         success: true,
-        message: `All schools in LGA ${lgaCode} ${blocked ? 'blocked' : 'unblocked'} successfully`,
+        message: `${blocked ? 'Blocked' : 'Unblocked'} ${resultsUpdated.count} result(s) for LGA ${lgaCode}`,
         details: {
-          schoolsUpdated: schoolsUpdated.count,
-          schoolDataUpdated: schoolDataUpdated.count,
+          resultsUpdated: resultsUpdated.count,
         },
       });
     }

@@ -178,52 +178,78 @@ export async function GET(request: NextRequest) {
       allStudents = allStudents.slice(skip, skip + limit);
     }
     
+    // Fetch lCode from SchoolData for each student
+    // Note: School.lgaCode contains the actual LGA code (lCode in SchoolData)
+    const schoolDataMap = new Map();
+    const uniqueSchools = [...new Set(allStudents.map(s => `${s.school.lgaCode}-${s.school.schoolCode}`))];
+    
+    for (const schoolKey of uniqueSchools) {
+      const [schoolLgaCode, schoolCode] = schoolKey.split('-');
+      const schoolData = await prisma.schoolData.findFirst({
+        where: {
+          lCode: schoolLgaCode,  // Match School.lgaCode with SchoolData.lCode
+          schCode: schoolCode,
+        },
+        select: {
+          lgaCode: true,  // Get the sequential lgaCode (1, 2, 3, etc.)
+        },
+      });
+      if (schoolData) {
+        schoolDataMap.set(schoolKey, schoolData.lgaCode);
+      }
+    }
+    
     // Transform data for frontend
-    const transformedStudents = allStudents.map(student => ({
-      id: student.id,
-      accCode: student.accCode,
-      studentNumber: student.studentNumber,
-      firstname: student.firstname,
-      othername: student.othername,
-      lastname: student.lastname,
-      gender: student.gender,
-      schoolType: student.schoolType,
-      passport: student.passport,
-      
-      // English scores
-      englishTerm1: student.englishTerm1,
-      englishTerm2: student.englishTerm2,
-      englishTerm3: student.englishTerm3,
-      
-      // Arithmetic scores
-      arithmeticTerm1: student.arithmeticTerm1,
-      arithmeticTerm2: student.arithmeticTerm2,
-      arithmeticTerm3: student.arithmeticTerm3,
-      
-      // General Paper scores
-      generalTerm1: student.generalTerm1,
-      generalTerm2: student.generalTerm2,
-      generalTerm3: student.generalTerm3,
-      
-      // Religious Studies
-      religiousType: student.religiousType,
-      religiousTerm1: student.religiousTerm1,
-      religiousTerm2: student.religiousTerm2,
-      religiousTerm3: student.religiousTerm3,
-      
-      // Year and PRCD
-      prcd: student.prcd,
-      year: student.year,
-      
-      // Registration type
-      registrationType: student.registrationType,
-      
-      // Additional info for filters
-      lga: getLGAName(student.school.lgaCode),
-      schoolCode: student.school.schoolCode,
-      schoolName: student.school.schoolName,
-      date: student.createdAt.toISOString().split("T")[0],
-    }));
+    const transformedStudents = allStudents.map(student => {
+      const schoolKey = `${student.school.lgaCode}-${student.school.schoolCode}`;
+      return {
+        id: student.id,
+        accCode: student.accCode,
+        studentNumber: student.studentNumber,
+        firstname: student.firstname,
+        othername: student.othername,
+        lastname: student.lastname,
+        gender: student.gender,
+        schoolType: student.schoolType,
+        passport: student.passport,
+        
+        // English scores
+        englishTerm1: student.englishTerm1,
+        englishTerm2: student.englishTerm2,
+        englishTerm3: student.englishTerm3,
+        
+        // Arithmetic scores
+        arithmeticTerm1: student.arithmeticTerm1,
+        arithmeticTerm2: student.arithmeticTerm2,
+        arithmeticTerm3: student.arithmeticTerm3,
+        
+        // General Paper scores
+        generalTerm1: student.generalTerm1,
+        generalTerm2: student.generalTerm2,
+        generalTerm3: student.generalTerm3,
+        
+        // Religious Studies
+        religiousType: student.religiousType,
+        religiousTerm1: student.religiousTerm1,
+        religiousTerm2: student.religiousTerm2,
+        religiousTerm3: student.religiousTerm3,
+        
+        // Year and PRCD
+        prcd: student.prcd,
+        year: student.year,
+        
+        // Registration type
+        registrationType: student.registrationType,
+        
+        // Additional info for filters
+        lga: getLGAName(student.school.lgaCode),
+        lgaCode: student.school.lgaCode,
+        lCode: schoolDataMap.get(schoolKey) || "",
+        schoolCode: student.school.schoolCode,
+        schoolName: student.school.schoolName,
+        date: student.createdAt.toISOString().split("T")[0],
+      };
+    });
     
     return NextResponse.json({
       data: transformedStudents,

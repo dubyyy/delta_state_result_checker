@@ -39,6 +39,7 @@ export default function ManagePage() {
   const [deleteResultExam, setDeleteResultExam] = useState("");
   const [deleteResultLoading, setDeleteResultLoading] = useState(false);
   const [deleteSchoolCode, setDeleteSchoolCode] = useState("");
+  const [deleteSchoolLga, setDeleteSchoolLga] = useState<string>("all");
   const [deleteSchoolLoading, setDeleteSchoolLoading] = useState(false);
   const [deleteLgaCode, setDeleteLgaCode] = useState("");
   const [deleteLgaLoading, setDeleteLgaLoading] = useState(false);
@@ -47,12 +48,14 @@ export default function ManagePage() {
   const [blockResultExam, setBlockResultExam] = useState("");
   const [blockResultLoading, setBlockResultLoading] = useState(false);
   const [blockSchoolCode, setBlockSchoolCode] = useState("");
+  const [blockSchoolLga, setBlockSchoolLga] = useState<string>("all");
   const [blockSchoolLoading, setBlockSchoolLoading] = useState(false);
   const [blockLgaCode, setBlockLgaCode] = useState("");
   const [blockLgaLoading, setBlockLgaLoading] = useState(false);
   
   // Religious classification states
   const [classificationSchoolCode, setClassificationSchoolCode] = useState("");
+  const [classificationLga, setClassificationLga] = useState<string>("all");
   const [classificationLoading, setClassificationLoading] = useState(false);
   
   // Global release states
@@ -496,6 +499,19 @@ export default function ManagePage() {
               Delete School Results
             </Label>
             <div className="flex gap-2">
+              <Select value={deleteSchoolLga} onValueChange={setDeleteSchoolLga}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select LGA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All LGAs</SelectItem>
+                  {lgaCodes.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 id="delete-school"
                 placeholder="Enter School Code"
@@ -615,6 +631,19 @@ export default function ManagePage() {
               Block/Unblock School Results
             </Label>
             <div className="flex gap-2">
+              <Select value={blockSchoolLga} onValueChange={setBlockSchoolLga}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select LGA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All LGAs</SelectItem>
+                  {lgaCodes.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 id="block-school"
                 placeholder="Enter School Code"
@@ -687,6 +716,19 @@ export default function ManagePage() {
               Update School Classification
             </Label>
             <div className="flex gap-2 flex-wrap">
+              <Select value={classificationLga} onValueChange={setClassificationLga}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select LGA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All LGAs</SelectItem>
+                  {lgaCodes.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 id="classification-school"
                 placeholder="Enter School Code"
