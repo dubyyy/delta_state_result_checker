@@ -32,11 +32,7 @@ import {
   MapPin,
   User,
   Church,
-  FileText,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Filter
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,71 +43,31 @@ interface CountData {
   details?: any;
 }
 
-interface Result {
-  id: number;
-  sessionYr: string;
-  fName: string;
-  mName?: string;
-  lName: string;
-  sexCd: string;
-  institutionCd: string;
-  schoolName: string;
-  lgaCd: string;
-  examinationNo: string;
-  eng?: number;
-  engGrd?: string;
-  arit?: number;
-  aritGrd?: string;
-  gp?: number;
-  gpGrd?: string;
-  rgs?: number;
-  rgsGrd?: string;
-  rgstype?: string;
-  remark?: string;
-  accessPin: string;
-  blocked: boolean;
-}
-
 export default function ManagePage() {
   const [lgaCount, setLgaCount] = useState<number>(0);
   const [schoolsByLga, setSchoolsByLga] = useState<any[]>([]);
+  const [resultsCount, setResultsCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   
   // Delete states
   const [deleteSchoolId, setDeleteSchoolId] = useState("");
   const [deleteStudentExam, setDeleteStudentExam] = useState("");
+  const [deleteResultExam, setDeleteResultExam] = useState("");
   const [deleteLgaCode, setDeleteLgaCode] = useState("");
   
   // Block states
   const [blockSchoolId, setBlockSchoolId] = useState("");
   const [blockStudentExam, setBlockStudentExam] = useState("");
+  const [blockResultExam, setBlockResultExam] = useState("");
   const [blockLgaCode, setBlockLgaCode] = useState("");
   
   // School classification states
   const [classificationSchoolId, setClassificationSchoolId] = useState("");
   const [classification, setClassification] = useState<string>("Christian");
-  
-  // Results states
-  const [results, setResults] = useState<Result[]>([]);
-  const [resultsPage, setResultsPage] = useState(1);
-  const [resultsLimit] = useState(50);
-  const [resultsTotalPages, setResultsTotalPages] = useState(1);
-  const [resultsTotalCount, setResultsTotalCount] = useState(0);
-  const [resultsSearch, setResultsSearch] = useState("");
-  const [resultsSessionFilter, setResultsSessionFilter] = useState("");
-  const [resultsLgaFilter, setResultsLgaFilter] = useState("");
-  const [resultsBlockedFilter, setResultsBlockedFilter] = useState("");
-  const [availableSessionYears, setAvailableSessionYears] = useState<string[]>([]);
-  const [availableLgaCodes, setAvailableLgaCodes] = useState<string[]>([]);
-  const [resultsLoading, setResultsLoading] = useState(false);
 
   useEffect(() => {
     fetchCounts();
   }, []);
-
-  useEffect(() => {
-    fetchResults();
-  }, [resultsPage, resultsSearch, resultsSessionFilter, resultsLgaFilter, resultsBlockedFilter]);
 
   const fetchCounts = async () => {
     setLoading(true);
@@ -129,43 +85,18 @@ export default function ManagePage() {
         const data = await schoolsRes.json();
         setSchoolsByLga(data);
       }
+
+      // Fetch results count
+      const resultsRes = await fetch("/api/admin/results?limit=1");
+      if (resultsRes.ok) {
+        const data = await resultsRes.json();
+        setResultsCount(data.pagination.totalCount);
+      }
     } catch (error) {
       console.error("Error fetching counts:", error);
       toast.error("Failed to fetch statistics");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchResults = async () => {
-    setResultsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: resultsPage.toString(),
-        limit: resultsLimit.toString(),
-      });
-
-      if (resultsSearch) params.append('search', resultsSearch);
-      if (resultsSessionFilter) params.append('sessionYr', resultsSessionFilter);
-      if (resultsLgaFilter) params.append('lgaCode', resultsLgaFilter);
-      if (resultsBlockedFilter) params.append('blocked', resultsBlockedFilter);
-
-      const res = await fetch(`/api/admin/results?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data.results);
-        setResultsTotalPages(data.pagination.totalPages);
-        setResultsTotalCount(data.pagination.totalCount);
-        setAvailableSessionYears(data.filters.sessionYears);
-        setAvailableLgaCodes(data.filters.lgaCodes);
-      } else {
-        toast.error("Failed to fetch results");
-      }
-    } catch (error) {
-      console.error("Error fetching results:", error);
-      toast.error("Failed to fetch results");
-    } finally {
-      setResultsLoading(false);
     }
   };
 
@@ -218,6 +149,30 @@ export default function ManagePage() {
       }
     } catch (error) {
       toast.error("An error occurred while deleting student");
+    }
+  };
+
+  const handleDeleteResult = async () => {
+    if (!deleteResultExam) {
+      toast.error("Please enter an examination number");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/results?examinationNo=${deleteResultExam}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setDeleteResultExam("");
+        fetchCounts();
+      } else {
+        toast.error(data.error || "Failed to delete result");
+      }
+    } catch (error) {
+      toast.error("An error occurred while deleting result");
     }
   };
 
@@ -295,6 +250,38 @@ export default function ManagePage() {
       }
     } catch (error) {
       toast.error("An error occurred while updating student block status");
+    }
+  };
+
+  const handleBlockResult = async (blocked: boolean) => {
+    if (!blockResultExam) {
+      toast.error("Please enter an examination number");
+      return;
+    }
+
+    try {
+      const result = await fetch(`/api/results?examNumber=${blockResultExam}`);
+      if (!result.ok) {
+        toast.error("Result not found");
+        return;
+      }
+      const resultData = await result.json();
+
+      const res = await fetch("/api/admin/results", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: resultData.id, blocked }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setBlockResultExam("");
+      } else {
+        toast.error(data.error || "Failed to update result block status");
+      }
+    } catch (error) {
+      toast.error("An error occurred while updating result block status");
     }
   };
 
@@ -405,9 +392,8 @@ export default function ManagePage() {
 
       {/* Management Tabs */}
       <Tabs defaultValue="count" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="count">Count</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
           <TabsTrigger value="delete">Delete</TabsTrigger>
           <TabsTrigger value="block">Block</TabsTrigger>
           <TabsTrigger value="classify">Classify</TabsTrigger>
@@ -444,213 +430,18 @@ export default function ManagePage() {
                 </div>
               </div>
 
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Results
+                </h3>
+                <p className="text-2xl font-bold">{resultsCount} Total Results</p>
+                <p className="text-sm text-muted-foreground mt-1">Student examination results in database</p>
+              </div>
+
               <Button onClick={fetchCounts} variant="outline" className="w-full">
                 Refresh Counts
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* RESULTS TAB */}
-        <TabsContent value="results" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Results Management
-              </CardTitle>
-              <CardDescription>View, search, and manage student results</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Filters */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="results-search" className="flex items-center gap-2">
-                    <Search className="h-4 w-4" />
-                    Search
-                  </Label>
-                  <Input
-                    id="results-search"
-                    placeholder="Name or Exam No..."
-                    value={resultsSearch}
-                    onChange={(e) => {
-                      setResultsSearch(e.target.value);
-                      setResultsPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    Session Year
-                  </Label>
-                  <Select value={resultsSessionFilter} onValueChange={(value) => {
-                    setResultsSessionFilter(value);
-                    setResultsPage(1);
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Sessions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Sessions</SelectItem>
-                      {availableSessionYears.map((year) => (
-                        <SelectItem key={year} value={year}>{year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    LGA
-                  </Label>
-                  <Select value={resultsLgaFilter} onValueChange={(value) => {
-                    setResultsLgaFilter(value);
-                    setResultsPage(1);
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All LGAs" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All LGAs</SelectItem>
-                      {availableLgaCodes.map((lga) => (
-                        <SelectItem key={lga} value={lga}>{lga}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Ban className="h-4 w-4" />
-                    Status
-                  </Label>
-                  <Select value={resultsBlockedFilter} onValueChange={(value) => {
-                    setResultsBlockedFilter(value);
-                    setResultsPage(1);
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Status</SelectItem>
-                      <SelectItem value="false">Active</SelectItem>
-                      <SelectItem value="true">Blocked</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Results Count */}
-              <div className="flex justify-between items-center px-2">
-                <p className="text-sm text-muted-foreground">
-                  Showing {results.length} of {resultsTotalCount} results
-                </p>
-                <Button onClick={fetchResults} variant="outline" size="sm">
-                  Refresh
-                </Button>
-              </div>
-
-              {/* Results Table */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="max-h-[600px] overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted sticky top-0">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium">Exam No</th>
-                        <th className="px-4 py-3 text-left font-medium">Name</th>
-                        <th className="px-4 py-3 text-left font-medium">School</th>
-                        <th className="px-4 py-3 text-left font-medium">LGA</th>
-                        <th className="px-4 py-3 text-left font-medium">Session</th>
-                        <th className="px-4 py-3 text-left font-medium">Eng</th>
-                        <th className="px-4 py-3 text-left font-medium">Arit</th>
-                        <th className="px-4 py-3 text-left font-medium">GP</th>
-                        <th className="px-4 py-3 text-left font-medium">RGS</th>
-                        <th className="px-4 py-3 text-left font-medium">Remark</th>
-                        <th className="px-4 py-3 text-left font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {resultsLoading ? (
-                        <tr>
-                          <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
-                            Loading results...
-                          </td>
-                        </tr>
-                      ) : results.length === 0 ? (
-                        <tr>
-                          <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
-                            No results found
-                          </td>
-                        </tr>
-                      ) : (
-                        results.map((result) => (
-                          <tr key={result.id} className="border-t hover:bg-muted/50">
-                            <td className="px-4 py-3 font-mono text-xs">{result.examinationNo}</td>
-                            <td className="px-4 py-3">
-                              {result.fName} {result.mName} {result.lName}
-                            </td>
-                            <td className="px-4 py-3 text-xs">{result.schoolName}</td>
-                            <td className="px-4 py-3">{result.lgaCd}</td>
-                            <td className="px-4 py-3">{result.sessionYr}</td>
-                            <td className="px-4 py-3">
-                              {result.eng ? `${result.eng} (${result.engGrd})` : '-'}
-                            </td>
-                            <td className="px-4 py-3">
-                              {result.arit ? `${result.arit} (${result.aritGrd})` : '-'}
-                            </td>
-                            <td className="px-4 py-3">
-                              {result.gp ? `${result.gp} (${result.gpGrd})` : '-'}
-                            </td>
-                            <td className="px-4 py-3">
-                              {result.rgs ? `${result.rgs} (${result.rgsGrd})` : '-'}
-                            </td>
-                            <td className="px-4 py-3">{result.remark || '-'}</td>
-                            <td className="px-4 py-3">
-                              {result.blocked ? (
-                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                  Blocked
-                                </span>
-                              ) : (
-                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                  Active
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setResultsPage(p => Math.max(1, p - 1))}
-                  disabled={resultsPage === 1 || resultsLoading}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {resultsPage} of {resultsTotalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setResultsPage(p => Math.min(resultsTotalPages, p + 1))}
-                  disabled={resultsPage === resultsTotalPages || resultsLoading}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -734,6 +525,45 @@ export default function ManagePage() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive text-destructive-foreground">
                           Delete Student
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+
+              {/* Delete Result */}
+              <div className="space-y-3">
+                <Label htmlFor="delete-result" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Delete Result
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="delete-result"
+                    placeholder="Enter Examination Number"
+                    value={deleteResultExam}
+                    onChange={(e) => setDeleteResultExam(e.target.value)}
+                  />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" disabled={!deleteResultExam}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Result</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete the student result from the database.
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteResult} className="bg-destructive text-destructive-foreground">
+                          Delete Result
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -848,6 +678,38 @@ export default function ManagePage() {
                     variant="default" 
                     disabled={!blockStudentExam}
                     onClick={() => handleBlockStudent(false)}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Unblock
+                  </Button>
+                </div>
+              </div>
+
+              {/* Block Result */}
+              <div className="space-y-3">
+                <Label htmlFor="block-result" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Block/Unblock Result
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="block-result"
+                    placeholder="Enter Examination Number"
+                    value={blockResultExam}
+                    onChange={(e) => setBlockResultExam(e.target.value)}
+                  />
+                  <Button 
+                    variant="destructive" 
+                    disabled={!blockResultExam}
+                    onClick={() => handleBlockResult(true)}
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Block
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    disabled={!blockResultExam}
+                    onClick={() => handleBlockResult(false)}
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     Unblock
