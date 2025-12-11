@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { schoolId, classification } = body;
+    const { schoolId, schoolCode, classification } = body;
 
-    if (!schoolId) {
+    if (!schoolId && !schoolCode) {
       return NextResponse.json(
-        { error: "schoolId is required" },
+        { error: "schoolId or schoolCode is required" },
         { status: 400 }
       );
     }
@@ -32,11 +32,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update school religious classification
-    const school = await prisma.school.update({
-      where: { id: schoolId },
-      data: { religiousClassification: classification },
-    });
+    // Find and update school religious classification
+    let school;
+    if (schoolId) {
+      school = await prisma.school.update({
+        where: { id: schoolId },
+        data: { religiousClassification: classification },
+      });
+    } else {
+      // Find by school code
+      const existingSchool = await prisma.school.findFirst({
+        where: { schoolCode: schoolCode },
+      });
+
+      if (!existingSchool) {
+        return NextResponse.json(
+          { error: `School with code ${schoolCode} not found` },
+          { status: 404 }
+        );
+      }
+
+      school = await prisma.school.update({
+        where: { id: existingSchool.id },
+        data: { religiousClassification: classification },
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -44,6 +64,7 @@ export async function POST(req: NextRequest) {
       school: {
         id: school.id,
         name: school.schoolName,
+        code: school.schoolCode,
         religiousClassification: school.religiousClassification,
       },
     });

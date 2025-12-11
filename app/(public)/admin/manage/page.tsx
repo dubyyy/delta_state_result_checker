@@ -23,71 +23,83 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { 
-  Trash2, 
-  Ban, 
-  CheckCircle2, 
-  Hash, 
-  School,
-  MapPin,
-  User,
-  Church,
-  FileText
-} from "lucide-react";
+import { Trash2, FileText, Ban, CheckCircle2, School, MapPin, Filter, Church, Globe, Lock, Unlock } from "lucide-react";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-interface CountData {
-  type: string;
-  count: number;
-  details?: any;
-}
 
 export default function ManagePage() {
-  const [lgaCount, setLgaCount] = useState<number>(0);
-  const [schoolsByLga, setSchoolsByLga] = useState<any[]>([]);
+  // Count and filter states
   const [resultsCount, setResultsCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const [lgaCodes, setLgaCodes] = useState<string[]>([]);
+  const [schoolCodes, setSchoolCodes] = useState<string[]>([]);
+  const [selectedLga, setSelectedLga] = useState<string>("all");
+  const [selectedSchool, setSelectedSchool] = useState<string>("all");
   
   // Delete states
-  const [deleteSchoolId, setDeleteSchoolId] = useState("");
-  const [deleteStudentExam, setDeleteStudentExam] = useState("");
   const [deleteResultExam, setDeleteResultExam] = useState("");
+  const [deleteResultLoading, setDeleteResultLoading] = useState(false);
+  const [deleteSchoolCode, setDeleteSchoolCode] = useState("");
+  const [deleteSchoolLoading, setDeleteSchoolLoading] = useState(false);
   const [deleteLgaCode, setDeleteLgaCode] = useState("");
+  const [deleteLgaLoading, setDeleteLgaLoading] = useState(false);
   
   // Block states
-  const [blockSchoolId, setBlockSchoolId] = useState("");
-  const [blockStudentExam, setBlockStudentExam] = useState("");
   const [blockResultExam, setBlockResultExam] = useState("");
+  const [blockResultLoading, setBlockResultLoading] = useState(false);
+  const [blockSchoolCode, setBlockSchoolCode] = useState("");
+  const [blockSchoolLoading, setBlockSchoolLoading] = useState(false);
   const [blockLgaCode, setBlockLgaCode] = useState("");
+  const [blockLgaLoading, setBlockLgaLoading] = useState(false);
   
-  // School classification states
-  const [classificationSchoolId, setClassificationSchoolId] = useState("");
-  const [classification, setClassification] = useState<string>("Christian");
+  // Religious classification states
+  const [classificationSchoolCode, setClassificationSchoolCode] = useState("");
+  const [classificationLoading, setClassificationLoading] = useState(false);
+  
+  // Global release states
+  const [globalReleaseLoading, setGlobalReleaseLoading] = useState(false);
 
   useEffect(() => {
     fetchCounts();
+    fetchFilterOptions();
   }, []);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [selectedLga, selectedSchool]);
+
+  const fetchFilterOptions = async () => {
+    try {
+      const resultsRes = await fetch("/api/admin/results?limit=1");
+      if (resultsRes.ok) {
+        const data = await resultsRes.json();
+        if (data.filters) {
+          setLgaCodes(data.filters.lgaCodes || []);
+          
+          const uniqueSchools = await fetch("/api/admin/results?limit=10000&page=1");
+          if (uniqueSchools.ok) {
+            const schoolsData = await uniqueSchools.json();
+            const codes = [...new Set(schoolsData.results.map((r: any) => r.institutionCd))].filter(Boolean);
+            setSchoolCodes(codes as string[]);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching filter options:", error);
+    }
+  };
 
   const fetchCounts = async () => {
     setLoading(true);
     try {
-      // Fetch LGA count
-      const lgaRes = await fetch("/api/admin/count?type=lga");
-      if (lgaRes.ok) {
-        const data = await lgaRes.json();
-        setLgaCount(data.count);
+      const params = new URLSearchParams({ limit: "1" });
+      if (selectedLga !== "all") {
+        params.append("lgaCode", selectedLga);
+      }
+      if (selectedSchool !== "all") {
+        params.append("institutionCd", selectedSchool);
       }
 
-      // Fetch schools by LGA
-      const schoolsRes = await fetch("/api/admin/count?type=all-schools-by-lga");
-      if (schoolsRes.ok) {
-        const data = await schoolsRes.json();
-        setSchoolsByLga(data);
-      }
-
-      // Fetch results count
-      const resultsRes = await fetch("/api/admin/results?limit=1");
+      const resultsRes = await fetch(`/api/admin/results?${params.toString()}`);
       if (resultsRes.ok) {
         const data = await resultsRes.json();
         setResultsCount(data.pagination.totalCount);
@@ -100,79 +112,61 @@ export default function ManagePage() {
     }
   };
 
-  // Delete handlers
-  const handleDeleteSchool = async () => {
-    if (!deleteSchoolId) {
-      toast.error("Please enter a school ID");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/admin/delete", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "school", id: deleteSchoolId }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        setDeleteSchoolId("");
-        fetchCounts();
-      } else {
-        toast.error(data.error || "Failed to delete school");
-      }
-    } catch (error) {
-      toast.error("An error occurred while deleting school");
-    }
-  };
-
-  const handleDeleteStudent = async () => {
-    if (!deleteStudentExam) {
-      toast.error("Please enter an examination number");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/admin/delete", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "student", examNumber: deleteStudentExam }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        setDeleteStudentExam("");
-      } else {
-        toast.error(data.error || "Failed to delete student");
-      }
-    } catch (error) {
-      toast.error("An error occurred while deleting student");
-    }
-  };
-
   const handleDeleteResult = async () => {
     if (!deleteResultExam) {
       toast.error("Please enter an examination number");
       return;
     }
 
+    setDeleteResultLoading(true);
     try {
-      const res = await fetch(`/api/admin/results?examinationNo=${deleteResultExam}`, {
+      const res = await fetch(`/api/admin/results?examinationNo=${encodeURIComponent(deleteResultExam)}`, {
         method: "DELETE",
       });
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message);
+        toast.success(data.message || "Result deleted successfully");
         setDeleteResultExam("");
         fetchCounts();
       } else {
         toast.error(data.error || "Failed to delete result");
       }
     } catch (error) {
+      console.error("Error deleting result:", error);
       toast.error("An error occurred while deleting result");
+    } finally {
+      setDeleteResultLoading(false);
+    }
+  };
+
+  const handleDeleteSchool = async () => {
+    if (!deleteSchoolCode) {
+      toast.error("Please enter a school code");
+      return;
+    }
+
+    setDeleteSchoolLoading(true);
+    try {
+      const res = await fetch("/api/admin/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "school", schoolCode: deleteSchoolCode }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "School results deleted successfully");
+        setDeleteSchoolCode("");
+        fetchCounts();
+      } else {
+        toast.error(data.error || "Failed to delete school results");
+      }
+    } catch (error) {
+      console.error("Error deleting school results:", error);
+      toast.error("An error occurred while deleting school results");
+    } finally {
+      setDeleteSchoolLoading(false);
     }
   };
 
@@ -182,6 +176,7 @@ export default function ManagePage() {
       return;
     }
 
+    setDeleteLgaLoading(true);
     try {
       const res = await fetch("/api/admin/delete", {
         method: "DELETE",
@@ -191,65 +186,17 @@ export default function ManagePage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message);
+        toast.success(data.message || "LGA results deleted successfully");
         setDeleteLgaCode("");
         fetchCounts();
       } else {
-        toast.error(data.error || "Failed to delete LGA");
+        toast.error(data.error || "Failed to delete LGA results");
       }
     } catch (error) {
-      toast.error("An error occurred while deleting LGA");
-    }
-  };
-
-  // Block handlers
-  const handleBlockSchool = async (blocked: boolean) => {
-    if (!blockSchoolId) {
-      toast.error("Please enter a school ID");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/admin/block", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "school", id: blockSchoolId, blocked }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        setBlockSchoolId("");
-      } else {
-        toast.error(data.error || "Failed to update school block status");
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating school block status");
-    }
-  };
-
-  const handleBlockStudent = async (blocked: boolean) => {
-    if (!blockStudentExam) {
-      toast.error("Please enter an examination number");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/admin/block", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "student", examNumber: blockStudentExam, blocked }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        setBlockStudentExam("");
-      } else {
-        toast.error(data.error || "Failed to update student block status");
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating student block status");
+      console.error("Error deleting LGA results:", error);
+      toast.error("An error occurred while deleting LGA results");
+    } finally {
+      setDeleteLgaLoading(false);
     }
   };
 
@@ -259,10 +206,12 @@ export default function ManagePage() {
       return;
     }
 
+    setBlockResultLoading(true);
     try {
-      const result = await fetch(`/api/results?examNumber=${blockResultExam}`);
+      const result = await fetch(`/api/results?examNumber=${encodeURIComponent(blockResultExam)}`);
       if (!result.ok) {
         toast.error("Result not found");
+        setBlockResultLoading(false);
         return;
       }
       const resultData = await result.json();
@@ -275,13 +224,45 @@ export default function ManagePage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message);
+        toast.success(data.message || `Result ${blocked ? "blocked" : "unblocked"} successfully`);
         setBlockResultExam("");
       } else {
         toast.error(data.error || "Failed to update result block status");
       }
     } catch (error) {
+      console.error("Error updating result block status:", error);
       toast.error("An error occurred while updating result block status");
+    } finally {
+      setBlockResultLoading(false);
+    }
+  };
+
+  const handleBlockSchool = async (blocked: boolean) => {
+    if (!blockSchoolCode) {
+      toast.error("Please enter a school code");
+      return;
+    }
+
+    setBlockSchoolLoading(true);
+    try {
+      const res = await fetch("/api/admin/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "school", schoolCode: blockSchoolCode, blocked }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || `School ${blocked ? "blocked" : "unblocked"} successfully`);
+        setBlockSchoolCode("");
+      } else {
+        toast.error(data.error || "Failed to update school block status");
+      }
+    } catch (error) {
+      console.error("Error updating school block status:", error);
+      toast.error("An error occurred while updating school block status");
+    } finally {
+      setBlockSchoolLoading(false);
     }
   };
 
@@ -291,6 +272,7 @@ export default function ManagePage() {
       return;
     }
 
+    setBlockLgaLoading(true);
     try {
       const res = await fetch("/api/admin/block", {
         method: "POST",
@@ -300,507 +282,522 @@ export default function ManagePage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message);
+        toast.success(data.message || `LGA ${blocked ? "blocked" : "unblocked"} successfully`);
         setBlockLgaCode("");
       } else {
         toast.error(data.error || "Failed to update LGA block status");
       }
     } catch (error) {
+      console.error("Error updating LGA block status:", error);
       toast.error("An error occurred while updating LGA block status");
+    } finally {
+      setBlockLgaLoading(false);
     }
   };
 
-  // Classification handler
-  const handleUpdateClassification = async () => {
-    if (!classificationSchoolId) {
-      toast.error("Please enter a school ID");
+  const handleUpdateClassification = async (classification: string) => {
+    if (!classificationSchoolCode) {
+      toast.error("Please enter a school code");
       return;
     }
 
+    setClassificationLoading(true);
     try {
       const res = await fetch("/api/admin/school-classification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          schoolId: classificationSchoolId, 
-          classification: classification === "None" ? null : classification 
-        }),
+        body: JSON.stringify({ schoolCode: classificationSchoolCode, classification }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message);
-        setClassificationSchoolId("");
+        toast.success(data.message || `School classification updated to ${classification}`);
+        setClassificationSchoolCode("");
       } else {
-        toast.error(data.error || "Failed to update school classification");
+        toast.error(data.error || "Failed to update classification");
       }
     } catch (error) {
-      toast.error("An error occurred while updating school classification");
+      console.error("Error updating classification:", error);
+      toast.error("An error occurred while updating classification");
+    } finally {
+      setClassificationLoading(false);
+    }
+  };
+
+  const handleGlobalRelease = async (released: boolean) => {
+    setGlobalReleaseLoading(true);
+    try {
+      const res = await fetch("/api/admin/global-release", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ released }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || `Results ${released ? "released" : "unreleased"} across all 25 LGAs`);
+        fetchCounts();
+      } else {
+        toast.error(data.error || "Failed to update global release status");
+      }
+    } catch (error) {
+      console.error("Error updating global release status:", error);
+      toast.error("An error occurred while updating global release status");
+    } finally {
+      setGlobalReleaseLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Management Console</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">Results Management</h2>
         <p className="text-muted-foreground mt-1">
-          Manage schools, students, and LGAs with counting, blocking, and deletion capabilities
+          Count, delete, and block results by LGA, school, or student
         </p>
       </div>
 
-      {/* Statistics Section */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total LGAs</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{lgaCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Distinct Local Government Areas
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Schools by LGA</CardTitle>
-            <School className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{schoolsByLga.length}</div>
-            <p className="text-xs text-muted-foreground">
-              LGAs with registered schools
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Actions Available</CardTitle>
-            <Hash className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">9</div>
-            <p className="text-xs text-muted-foreground">
-              Management operations
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Management Tabs */}
-      <Tabs defaultValue="count" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="count">Count</TabsTrigger>
-          <TabsTrigger value="delete">Delete</TabsTrigger>
-          <TabsTrigger value="block">Block</TabsTrigger>
-          <TabsTrigger value="classify">Classify</TabsTrigger>
-        </TabsList>
-
-        {/* COUNT TAB */}
-        <TabsContent value="count" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Count Statistics</CardTitle>
-              <CardDescription>View counts of LGAs and schools within each LGA</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border p-4">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  LGAs
-                </h3>
-                <p className="text-2xl font-bold">{lgaCount} Total LGAs</p>
-              </div>
-
-              <div className="rounded-lg border p-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <School className="h-4 w-4" />
-                  Schools by LGA
-                </h3>
-                <div className="max-h-[400px] overflow-y-auto space-y-2">
-                  {schoolsByLga.map((lga) => (
-                    <div key={lga.lgaCode} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <span className="font-medium">{lga.lgaCode}</span>
-                      <span className="text-sm text-muted-foreground">{lga.count} schools</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-lg border p-4">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Results
-                </h3>
-                <p className="text-2xl font-bold">{resultsCount} Total Results</p>
-                <p className="text-sm text-muted-foreground mt-1">Student examination results in database</p>
-              </div>
-
-              <Button onClick={fetchCounts} variant="outline" className="w-full">
-                Refresh Counts
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* DELETE TAB */}
-        <TabsContent value="delete" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Delete Operations</CardTitle>
-              <CardDescription>Permanently delete schools, students, or entire LGAs</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Delete School */}
-              <div className="space-y-3">
-                <Label htmlFor="delete-school" className="flex items-center gap-2">
-                  <School className="h-4 w-4" />
-                  Delete School
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="delete-school"
-                    placeholder="Enter School ID"
-                    value={deleteSchoolId}
-                    onChange={(e) => setDeleteSchoolId(e.target.value)}
-                  />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={!deleteSchoolId}>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete School</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete the school and all associated student records.
-                          This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteSchool} className="bg-destructive text-destructive-foreground">
-                          Delete School
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-
-              {/* Delete Student */}
-              <div className="space-y-3">
-                <Label htmlFor="delete-student" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Delete Student
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="delete-student"
-                    placeholder="Enter Examination Number"
-                    value={deleteStudentExam}
-                    onChange={(e) => setDeleteStudentExam(e.target.value)}
-                  />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={!deleteStudentExam}>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Student</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete the student record.
-                          This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive text-destructive-foreground">
-                          Delete Student
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-
-              {/* Delete Result */}
-              <div className="space-y-3">
-                <Label htmlFor="delete-result" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Delete Result
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="delete-result"
-                    placeholder="Enter Examination Number"
-                    value={deleteResultExam}
-                    onChange={(e) => setDeleteResultExam(e.target.value)}
-                  />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={!deleteResultExam}>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Result</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete the student result from the database.
-                          This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteResult} className="bg-destructive text-destructive-foreground">
-                          Delete Result
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-
-              {/* Delete LGA */}
-              <div className="space-y-3">
-                <Label htmlFor="delete-lga" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Delete LGA
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="delete-lga"
-                    placeholder="Enter LGA Code"
-                    value={deleteLgaCode}
-                    onChange={(e) => setDeleteLgaCode(e.target.value)}
-                  />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={!deleteLgaCode}>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Entire LGA</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete ALL schools, students, and data for this LGA.
-                          This is a CRITICAL action that cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteLga} className="bg-destructive text-destructive-foreground">
-                          Delete LGA
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* BLOCK TAB */}
-        <TabsContent value="block" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Block/Unblock Operations</CardTitle>
-              <CardDescription>Block or unblock schools, students, or entire LGAs</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Block School */}
-              <div className="space-y-3">
-                <Label htmlFor="block-school" className="flex items-center gap-2">
-                  <School className="h-4 w-4" />
-                  Block/Unblock School
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="block-school"
-                    placeholder="Enter School ID"
-                    value={blockSchoolId}
-                    onChange={(e) => setBlockSchoolId(e.target.value)}
-                  />
-                  <Button 
-                    variant="destructive" 
-                    disabled={!blockSchoolId}
-                    onClick={() => handleBlockSchool(true)}
-                  >
-                    <Ban className="h-4 w-4 mr-2" />
-                    Block
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    disabled={!blockSchoolId}
-                    onClick={() => handleBlockSchool(false)}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Unblock
-                  </Button>
-                </div>
-              </div>
-
-              {/* Block Student */}
-              <div className="space-y-3">
-                <Label htmlFor="block-student" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Block/Unblock Student
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="block-student"
-                    placeholder="Enter Examination Number"
-                    value={blockStudentExam}
-                    onChange={(e) => setBlockStudentExam(e.target.value)}
-                  />
-                  <Button 
-                    variant="destructive" 
-                    disabled={!blockStudentExam}
-                    onClick={() => handleBlockStudent(true)}
-                  >
-                    <Ban className="h-4 w-4 mr-2" />
-                    Block
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    disabled={!blockStudentExam}
-                    onClick={() => handleBlockStudent(false)}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Unblock
-                  </Button>
-                </div>
-              </div>
-
-              {/* Block Result */}
-              <div className="space-y-3">
-                <Label htmlFor="block-result" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Block/Unblock Result
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="block-result"
-                    placeholder="Enter Examination Number"
-                    value={blockResultExam}
-                    onChange={(e) => setBlockResultExam(e.target.value)}
-                  />
-                  <Button 
-                    variant="destructive" 
-                    disabled={!blockResultExam}
-                    onClick={() => handleBlockResult(true)}
-                  >
-                    <Ban className="h-4 w-4 mr-2" />
-                    Block
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    disabled={!blockResultExam}
-                    onClick={() => handleBlockResult(false)}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Unblock
-                  </Button>
-                </div>
-              </div>
-
-              {/* Block LGA */}
-              <div className="space-y-3">
-                <Label htmlFor="block-lga" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Block/Unblock LGA
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="block-lga"
-                    placeholder="Enter LGA Code"
-                    value={blockLgaCode}
-                    onChange={(e) => setBlockLgaCode(e.target.value)}
-                  />
-                  <Button 
-                    variant="destructive" 
-                    disabled={!blockLgaCode}
-                    onClick={() => handleBlockLga(true)}
-                  >
-                    <Ban className="h-4 w-4 mr-2" />
-                    Block
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    disabled={!blockLgaCode}
-                    onClick={() => handleBlockLga(false)}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Unblock
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* CLASSIFY TAB */}
-        <TabsContent value="classify" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>School Religious Classification</CardTitle>
-              <CardDescription>Set or change a school's religious classification</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <Label htmlFor="classification-school" className="flex items-center gap-2">
-                  <School className="h-4 w-4" />
-                  School ID
-                </Label>
-                <Input
-                  id="classification-school"
-                  placeholder="Enter School ID"
-                  value={classificationSchoolId}
-                  onChange={(e) => setClassificationSchoolId(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Church className="h-4 w-4" />
-                  Religious Classification
-                </Label>
-                <Select value={classification} onValueChange={setClassification}>
+      {/* Count Section with Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Count Results</CardTitle>
+          <CardDescription>View total results with optional filtering by LGA and School</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filters
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Filter by LGA</Label>
+                <Select value={selectedLga} onValueChange={setSelectedLga}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select classification" />
+                    <SelectValue placeholder="Select LGA" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Christian">Christian</SelectItem>
-                    <SelectItem value="Muslim">Muslim</SelectItem>
-                    <SelectItem value="None">None</SelectItem>
+                    <SelectItem value="all">All LGAs</SelectItem>
+                    {lgaCodes.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Filter by School Code</Label>
+                <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select School Code" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Schools</SelectItem>
+                    {schoolCodes.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {(selectedLga !== "all" || selectedSchool !== "all") && (
               <Button 
-                onClick={handleUpdateClassification}
-                disabled={!classificationSchoolId}
+                onClick={() => {
+                  setSelectedLga("all");
+                  setSelectedSchool("all");
+                }}
+                variant="outline"
+                size="sm"
                 className="w-full"
               >
-                Update Classification
+                Clear Filters
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+          </div>
+
+          {/* Results Display */}
+          <div className="rounded-lg border p-4">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Results Count
+              {(selectedLga !== "all" || selectedSchool !== "all") && (
+                <span className="text-xs font-normal text-muted-foreground ml-2">
+                  (Filtered)
+                </span>
+              )}
+            </h3>
+            <p className="text-2xl font-bold">{loading ? "Loading..." : resultsCount} Total Results</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedLga !== "all" && `LGA: ${selectedLga}`}
+              {selectedLga !== "all" && selectedSchool !== "all" && " • "}
+              {selectedSchool !== "all" && `School: ${selectedSchool}`}
+              {selectedLga === "all" && selectedSchool === "all" && "All student examination results in database"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Delete Operations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Delete Operations</CardTitle>
+          <CardDescription>Permanently delete results by student, school, or LGA</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Delete Student Result */}
+          <div className="space-y-3">
+            <Label htmlFor="delete-result" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Delete Student Result
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="delete-result"
+                placeholder="Enter Examination Number"
+                value={deleteResultExam}
+                onChange={(e) => setDeleteResultExam(e.target.value)}
+              />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={!deleteResultExam || deleteResultLoading}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleteResultLoading ? "Deleting..." : "Delete"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Student Result</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the student result from the database.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteResult} className="bg-destructive text-destructive-foreground">
+                      Delete Result
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+
+          {/* Delete School Results */}
+          <div className="space-y-3">
+            <Label htmlFor="delete-school" className="flex items-center gap-2">
+              <School className="h-4 w-4" />
+              Delete School Results
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="delete-school"
+                placeholder="Enter School Code"
+                value={deleteSchoolCode}
+                onChange={(e) => setDeleteSchoolCode(e.target.value)}
+              />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={!deleteSchoolCode || deleteSchoolLoading}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleteSchoolLoading ? "Deleting..." : "Delete"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete School Results</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete ALL results for this school.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteSchool} className="bg-destructive text-destructive-foreground">
+                      Delete School Results
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+
+          {/* Delete LGA Results */}
+          <div className="space-y-3">
+            <Label htmlFor="delete-lga" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Delete LGA Results
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="delete-lga"
+                placeholder="Enter LGA Code"
+                value={deleteLgaCode}
+                onChange={(e) => setDeleteLgaCode(e.target.value)}
+              />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={!deleteLgaCode || deleteLgaLoading}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleteLgaLoading ? "Deleting..." : "Delete"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete LGA Results</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete ALL results for this LGA.
+                      This is a CRITICAL action that cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteLga} className="bg-destructive text-destructive-foreground">
+                      Delete LGA Results
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Block Operations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Block/Unblock Operations</CardTitle>
+          <CardDescription>Block or unblock access to results by student, school, or LGA</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Block Student Result */}
+          <div className="space-y-3">
+            <Label htmlFor="block-result" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Block/Unblock Student Result
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="block-result"
+                placeholder="Enter Examination Number"
+                value={blockResultExam}
+                onChange={(e) => setBlockResultExam(e.target.value)}
+              />
+              <Button 
+                variant="destructive" 
+                disabled={!blockResultExam || blockResultLoading}
+                onClick={() => handleBlockResult(true)}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                {blockResultLoading ? "Processing..." : "Block"}
+              </Button>
+              <Button 
+                variant="default" 
+                disabled={!blockResultExam || blockResultLoading}
+                onClick={() => handleBlockResult(false)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Unblock
+              </Button>
+            </div>
+          </div>
+
+          {/* Block School Results */}
+          <div className="space-y-3">
+            <Label htmlFor="block-school" className="flex items-center gap-2">
+              <School className="h-4 w-4" />
+              Block/Unblock School Results
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="block-school"
+                placeholder="Enter School Code"
+                value={blockSchoolCode}
+                onChange={(e) => setBlockSchoolCode(e.target.value)}
+              />
+              <Button 
+                variant="destructive" 
+                disabled={!blockSchoolCode || blockSchoolLoading}
+                onClick={() => handleBlockSchool(true)}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                {blockSchoolLoading ? "Processing..." : "Block"}
+              </Button>
+              <Button 
+                variant="default" 
+                disabled={!blockSchoolCode || blockSchoolLoading}
+                onClick={() => handleBlockSchool(false)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Unblock
+              </Button>
+            </div>
+          </div>
+
+          {/* Block LGA Results */}
+          <div className="space-y-3">
+            <Label htmlFor="block-lga" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Block/Unblock LGA Results
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="block-lga"
+                placeholder="Enter LGA Code"
+                value={blockLgaCode}
+                onChange={(e) => setBlockLgaCode(e.target.value)}
+              />
+              <Button 
+                variant="destructive" 
+                disabled={!blockLgaCode || blockLgaLoading}
+                onClick={() => handleBlockLga(true)}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                {blockLgaLoading ? "Processing..." : "Block"}
+              </Button>
+              <Button 
+                variant="default" 
+                disabled={!blockLgaCode || blockLgaLoading}
+                onClick={() => handleBlockLga(false)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Unblock
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Religious Classification */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Religious Classification</CardTitle>
+          <CardDescription>Update religious classification for schools (Christian/Muslim)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Label htmlFor="classification-school" className="flex items-center gap-2">
+              <Church className="h-4 w-4" />
+              Update School Classification
+            </Label>
+            <div className="flex gap-2 flex-wrap">
+              <Input
+                id="classification-school"
+                placeholder="Enter School Code"
+                value={classificationSchoolCode}
+                onChange={(e) => setClassificationSchoolCode(e.target.value)}
+                className="flex-1 min-w-[200px]"
+              />
+              <Button 
+                variant="default" 
+                disabled={!classificationSchoolCode || classificationLoading}
+                onClick={() => handleUpdateClassification("Christian")}
+              >
+                <Church className="h-4 w-4 mr-2" />
+                {classificationLoading ? "Processing..." : "Christian"}
+              </Button>
+              <Button 
+                variant="secondary" 
+                disabled={!classificationSchoolCode || classificationLoading}
+                onClick={() => handleUpdateClassification("Muslim")}
+              >
+                <Church className="h-4 w-4 mr-2" />
+                Muslim
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Global Release Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Global Result Release</CardTitle>
+          <CardDescription>
+            Control result access across all 25 LGAs at once. Released results are accessible to all users.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border p-4 space-y-4">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Global Controls
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Use these controls to release or unrelease results for all LGAs simultaneously.
+              This affects result visibility across the entire system.
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="default" 
+                    disabled={globalReleaseLoading}
+                    className="flex-1 min-w-[150px]"
+                  >
+                    <Unlock className="h-4 w-4 mr-2" />
+                    {globalReleaseLoading ? "Processing..." : "Release All Results"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Release Results for All 25 LGAs</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will make ALL results accessible across all 25 LGAs.
+                      Users will be able to view their examination results.
+                      Are you sure you want to proceed?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleGlobalRelease(true)}>
+                      Release All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    disabled={globalReleaseLoading}
+                    className="flex-1 min-w-[150px]"
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Unrelease All Results
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Unrelease Results for All 25 LGAs</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will DENY access to ALL results across all 25 LGAs.
+                      Users will NOT be able to view their examination results.
+                      This is a CRITICAL action. Are you sure?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => handleGlobalRelease(false)}
+                      className="bg-destructive text-destructive-foreground"
+                    >
+                      Unrelease All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

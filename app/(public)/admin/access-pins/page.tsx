@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Copy, Download, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Copy, Download, Trash2, RefreshCw, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -54,6 +54,7 @@ export default function AccessPinsPage() {
   const [loading, setLoading] = useState(true);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [generateCount, setGenerateCount] = useState(10);
+  const [filter, setFilter] = useState<'all' | 'claimed' | 'unclaimed'>('all');
 
   useEffect(() => {
     fetchPins();
@@ -167,6 +168,13 @@ export default function AccessPinsPage() {
   const claimedPins = pins.filter(p => p.ownerSchoolCode);
   const unclaimedPins = pins.filter(p => !p.ownerSchoolCode && p.isActive);
 
+  // Apply filter to displayed pins
+  const filteredPins = pins.filter(pin => {
+    if (filter === 'claimed') return pin.ownerSchoolCode;
+    if (filter === 'unclaimed') return !pin.ownerSchoolCode && pin.isActive;
+    return true; // 'all'
+  });
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -278,7 +286,32 @@ export default function AccessPinsPage() {
       {/* PINs Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">All Access PINs ({pins.length})</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-base sm:text-lg">Access PINs ({filteredPins.length})</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant={filter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('all')}
+              >
+                All ({pins.length})
+              </Button>
+              <Button
+                variant={filter === 'claimed' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('claimed')}
+              >
+                Claimed ({claimedPins.length})
+              </Button>
+              <Button
+                variant={filter === 'unclaimed' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('unclaimed')}
+              >
+                Unclaimed ({unclaimedPins.length})
+              </Button>
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -296,7 +329,14 @@ export default function AccessPinsPage() {
               </TableHeader>
 
               <TableBody>
-                {pins.map((pin) => (
+                {filteredPins.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No pins found for the selected filter
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPins.map((pin) => (
                   <TableRow key={pin.id} className="hover:bg-muted/50">
                     <TableCell className="font-mono text-xs sm:text-sm font-medium">
                       <div className="flex items-center gap-2">
@@ -370,7 +410,8 @@ export default function AccessPinsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

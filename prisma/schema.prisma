@@ -74,6 +74,8 @@ model Result {
   remark        String?
   accessPin     String
   blocked       Boolean @default(false) // Added: Block status
+
+  @@map("Result")
 }
 
 

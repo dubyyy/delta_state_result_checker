@@ -52,6 +52,7 @@ interface Student {
   date: string;
   prcd?: number;
   year?: string;
+  registrationType?: string;
 }
 
 export default function Students() {
@@ -60,7 +61,7 @@ export default function Students() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLGA, setSelectedLGA] = useState("all");
   const [schoolCodeInput, setSchoolCodeInput] = useState("");
-  const [lateRegistration, setLateRegistration] = useState("all");
+  const [registrationType, setRegistrationType] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   
   // Ensure students is always an array
@@ -71,7 +72,7 @@ export default function Students() {
 
   useEffect(() => {
     fetchStudents();
-  }, [searchTerm, selectedLGA, schoolCodeInput, lateRegistration]);
+  }, [searchTerm, selectedLGA, schoolCodeInput, registrationType]);
 
   async function fetchStudents() {
     try {
@@ -79,7 +80,7 @@ export default function Students() {
       if (searchTerm) params.append("search", searchTerm);
       if (selectedLGA && selectedLGA !== "all") params.append("lga", selectedLGA);
       if (schoolCodeInput) params.append("schoolCode", schoolCodeInput);
-      if (lateRegistration && lateRegistration !== "all") params.append("lateRegistration", lateRegistration);
+      if (registrationType && registrationType !== "all") params.append("registrationType", registrationType);
 
       const response = await fetch(`/api/admin/students?${params.toString()}`);
       if (response.ok) {
@@ -328,14 +329,15 @@ export default function Students() {
                 />
               </div>
 
-              <Select value={lateRegistration} onValueChange={setLateRegistration}>
+              <Select value={registrationType} onValueChange={setRegistrationType}>
                 <SelectTrigger className="w-full sm:w-[200px] text-sm sm:text-base">
                   <SelectValue placeholder="Registration Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Registrations</SelectItem>
-                  <SelectItem value="true">Late Registration</SelectItem>
-                  <SelectItem value="false">Regular Registration</SelectItem>
+                  <SelectItem value="all">All Students</SelectItem>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="post">Post</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -345,7 +347,7 @@ export default function Students() {
                 onClick={() => {
                   setSelectedLGA("all");
                   setSchoolCodeInput("");
-                  setLateRegistration("all");
+                  setRegistrationType("all");
                 }}
                 className="text-xs sm:text-sm"
               >
@@ -394,6 +396,7 @@ export default function Students() {
                       <TableHead className="w-[60px] border-r-2">PRCD</TableHead>
                       <TableHead className="w-[80px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Photo</TableHead>
                       <TableHead className="w-[150px] sticky left-[80px] bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Student Number</TableHead>
+                      <TableHead className="w-[100px]">Type</TableHead>
                       <TableHead className="w-[150px]">Access Code</TableHead>
                       <TableHead>First Name</TableHead>
                       <TableHead>Other Name</TableHead>
@@ -410,6 +413,7 @@ export default function Students() {
                       <TableHead className="border-r-2"></TableHead>
                       <TableHead className="sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
                       <TableHead className="sticky left-[80px] bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
+                      <TableHead></TableHead>
                       <TableHead></TableHead>
                       <TableHead></TableHead>
                       <TableHead></TableHead>
@@ -453,6 +457,17 @@ export default function Students() {
                             </Avatar>
                           </TableCell>
                           <TableCell className="font-medium sticky left-[80px] bg-background group-hover:bg-muted/50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{student.studentNumber}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              student.registrationType === 'post' 
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                                : student.registrationType === 'late'
+                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+                                : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                            }`}>
+                              {student.registrationType === 'post' ? 'Post' : student.registrationType === 'late' ? 'Late' : 'Regular'}
+                            </span>
+                          </TableCell>
                           <TableCell className="font-mono text-xs">{student.accCode}</TableCell>
                           <TableCell>{student.firstname}</TableCell>
                           <TableCell>{student.othername || "-"}</TableCell>

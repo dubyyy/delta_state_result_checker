@@ -15,19 +15,19 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const lga = searchParams.get("lga");
     const schoolCode = searchParams.get("schoolCode");
-    const lateRegistration = searchParams.get("lateRegistration");
+    const registrationType = searchParams.get("registrationType"); // "all", "regular", "late", or "post"
     
     // Pagination parameters
     const page = parseInt(searchParams.get("page") || "1");
     const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 1000); // Max 1000 per page
     const skip = (page - 1) * limit;
     
-    // Build where clause
-    const where: any = {};
+    // Build where clause for StudentRegistration
+    const studentWhere: any = {};
     
     // Search by name or student number
     if (search) {
-      where.OR = [
+      studentWhere.OR = [
         {
           firstname: {
             contains: search,
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       // Convert LGA name to code (frontend sends names, backend uses codes)
       const lgaCode = getLGACode(lga);
       if (lgaCode) {
-        where.school = {
+        studentWhere.school = {
           lgaCode: lgaCode,
         };
       }
@@ -62,41 +62,124 @@ export async function GET(request: NextRequest) {
     
     // Filter by school code
     if (schoolCode && schoolCode !== "all") {
-      where.school = {
-        ...where.school,
+      studentWhere.school = {
+        ...studentWhere.school,
         schoolCode: schoolCode,
       };
     }
     
-    // Filter by late registration status
-    if (lateRegistration && lateRegistration !== "all") {
-      where.lateRegistration = lateRegistration === "true";
-    }
+    // Determine which tables/types to query based on registration type filter
+    const shouldQueryRegular = !registrationType || registrationType === "all" || registrationType === "regular";
+    const shouldQueryLate = !registrationType || registrationType === "all" || registrationType === "late";
+    const shouldQueryPost = !registrationType || registrationType === "all" || registrationType === "post";
     
-    // Get total count for pagination metadata
-    const [students, totalCount] = await Promise.all([
-      prisma.studentRegistration.findMany({
-        where,
-        include: {
-          school: {
-            select: {
-              schoolName: true,
-              schoolCode: true,
-              lgaCode: true,
+    let allStudents: any[] = [];
+    let totalCount = 0;
+    
+    // Query regular students (not late) if needed
+    if (shouldQueryRegular) {
+      const regularWhere = { 
+        ...studentWhere, 
+        lateRegistration: false 
+      };
+      
+      const [regularStudents, regularCount] = await Promise.all([
+        prisma.studentRegistration.findMany({
+          where: regularWhere,
+          include: {
+            school: {
+              select: {
+                schoolName: true,
+                schoolCode: true,
+                lgaCode: true,
+              },
             },
           },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.studentRegistration.count({ where }),
-    ]);
+          orderBy: {
+            createdAt: "desc",
+          },
+          skip: registrationType === "regular" ? skip : 0,
+          take: registrationType === "regular" ? limit : undefined,
+        }),
+        prisma.studentRegistration.count({ where: regularWhere }),
+      ]);
+      
+      allStudents = allStudents.concat(regularStudents.map(student => ({ ...student, registrationType: "regular" })));
+      totalCount += regularCount;
+    }
+    
+    // Query late students if needed
+    if (shouldQueryLate) {
+      const lateWhere = { 
+        ...studentWhere, 
+        lateRegistration: true 
+      };
+      
+      const [lateStudents, lateCount] = await Promise.all([
+        prisma.studentRegistration.findMany({
+          where: lateWhere,
+          include: {
+            school: {
+              select: {
+                schoolName: true,
+                schoolCode: true,
+                lgaCode: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          skip: registrationType === "late" ? skip : 0,
+          take: registrationType === "late" ? limit : undefined,
+        }),
+        prisma.studentRegistration.count({ where: lateWhere }),
+      ]);
+      
+      allStudents = allStudents.concat(lateStudents.map(student => ({ ...student, registrationType: "late" })));
+      totalCount += lateCount;
+    }
+    
+    // Query post students if needed
+    if (shouldQueryPost) {
+      // Use the same where clause structure for PostRegistration
+      const postWhere = { ...studentWhere };
+      
+      const [postStudents, postCount] = await Promise.all([
+        prisma.postRegistration.findMany({
+          where: postWhere,
+          include: {
+            school: {
+              select: {
+                schoolName: true,
+                schoolCode: true,
+                lgaCode: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          skip: registrationType === "post" ? skip : 0,
+          take: registrationType === "post" ? limit : undefined,
+        }),
+        prisma.postRegistration.count({ where: postWhere }),
+      ]);
+      
+      allStudents = allStudents.concat(postStudents.map(student => ({ ...student, registrationType: "post" })));
+      totalCount += postCount;
+    }
+    
+    // Sort combined results by creation date
+    allStudents.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    // Apply pagination if querying multiple types
+    if (registrationType === "all" || !registrationType) {
+      allStudents = allStudents.slice(skip, skip + limit);
+    }
     
     // Transform data for frontend
-    const transformedStudents = students.map(student => ({
+    const transformedStudents = allStudents.map(student => ({
       id: student.id,
       accCode: student.accCode,
       studentNumber: student.studentNumber,
@@ -131,6 +214,9 @@ export async function GET(request: NextRequest) {
       // Year and PRCD
       prcd: student.prcd,
       year: student.year,
+      
+      // Registration type
+      registrationType: student.registrationType,
       
       // Additional info for filters
       lga: getLGAName(student.school.lgaCode),

@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const sessionYr = searchParams.get('sessionYr') || '';
     const lgaCode = searchParams.get('lgaCode') || '';
+    const institutionCd = searchParams.get('institutionCd') || '';
     const blocked = searchParams.get('blocked');
 
     const skip = (page - 1) * limit;
@@ -32,6 +33,10 @@ export async function GET(request: NextRequest) {
 
     if (lgaCode) {
       where.lgaCd = lgaCode;
+    }
+
+    if (institutionCd) {
+      where.institutionCd = institutionCd;
     }
 
     if (blocked !== null && blocked !== undefined) {
@@ -134,6 +139,17 @@ export async function DELETE(request: NextRequest) {
       ? { id: parseInt(id) }
       : { examinationNo: examinationNo! };
 
+    // First check if the result exists
+    const existingResult = await prisma.result.findUnique({ where });
+
+    if (!existingResult) {
+      return NextResponse.json(
+        { error: 'Result not found with the provided examination number' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the result
     await prisma.result.delete({ where });
 
     return NextResponse.json({
@@ -142,7 +158,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Error deleting result:', error);
     return NextResponse.json(
-      { error: 'Failed to delete result' },
+      { error: 'Failed to delete result. Please try again.' },
       { status: 500 }
     );
   }
