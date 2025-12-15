@@ -20,6 +20,7 @@ interface Student {
   firstname: string;
   othername: string | null;
   lastname: string;
+  dateOfBirth: string | null;
   gender: string;
   schoolType: string;
   passport: string | null;
@@ -147,7 +148,8 @@ export default function Students() {
       "rgsType",
       "schType",
       "schcode",
-      "lgacode"
+      "lgacode",
+      "Date of Birth"
     ];
     const csvRows = [headers.join(",")];
 
@@ -181,7 +183,8 @@ export default function Students() {
         religiousTypeCode,
         student.schoolType || "",
         student.schoolCode || "",
-        student.lCode || ""
+        student.lCode || "",
+        student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString('en-GB') : ""
       ];
       csvRows.push(row.join(","));
     });

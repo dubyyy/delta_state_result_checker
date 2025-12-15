@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const GLOBAL_RESULTS_RELEASE_KEY = '__GLOBAL_RESULTS_RELEASE__';
+
+interface SchoolData {
+  lgaCode: string;
+  lCode: string;
+  schCode: string;
+  progID: string;
+  schName: string;
+  id: string;
+}
+
+let schoolsDataCache: SchoolData[] | null = null;
+
+function loadSchoolsData(): SchoolData[] {
+  if (schoolsDataCache) {
+    return schoolsDataCache;
+  }
+  
+  const dataPath = path.join(process.cwd(), 'data.json');
+  const fileContent = fs.readFileSync(dataPath, 'utf-8');
+  schoolsDataCache = JSON.parse(fileContent);
+  return schoolsDataCache!;
+}
+
+function getSchoolNameByCode(schoolCode: string, lgaCode: string): string | null {
+  const schoolsData = loadSchoolsData();
+  const school = schoolsData.find(
+    s => s.schCode === schoolCode && s.lgaCode === lgaCode
+  );
+  return school ? school.schName : null;
+}
 
 interface CSVRow {
   SESSIONYR: string;
@@ -11,7 +43,7 @@ interface CSVRow {
   LNAME: string;
   SEXCD: string;
   INSTITUTIONCD: string;
-  SCHOOLNAME: string;
+  SCHOOLCODE: string;
   LGACD: string;
   EXAMINATIONNO: string;
   ENG: string;
@@ -53,6 +85,8 @@ function parseCSV(csvText: string): CSVRow[] {
 }
 
 function mapCSVRowToResult(row: CSVRow) {
+  const schoolName = getSchoolNameByCode(row.SCHOOLCODE, row.LGACD);
+  
   return {
     sessionYr: row.SESSIONYR,
     fName: row.FNAME,
@@ -60,7 +94,7 @@ function mapCSVRowToResult(row: CSVRow) {
     lName: row.LNAME,
     sexCd: row.SEXCD,
     institutionCd: row.INSTITUTIONCD,
-    schoolName: row.SCHOOLNAME,
+    schoolName: schoolName || `UNKNOWN (Code: ${row.SCHOOLCODE})`,
     lgaCd: row.LGACD,
     examinationNo: row.EXAMINATIONNO,
     eng: row.ENG ? parseFloat(row.ENG) : null,
@@ -71,7 +105,7 @@ function mapCSVRowToResult(row: CSVRow) {
     gpGrd: row.GPGRD || null,
     rgs: row.RGS ? parseFloat(row.RGS) : null,
     rgsGrd: row.RGSGRD || null,
-    rgstype: row.RGSTYPE || null, // Added: Religious type (IRS/CRS)
+    rgstype: row.RGSTYPE || null,
     remark: row.REMARK || null,
     accessPin: row.ACCCESS_PIN,
   };

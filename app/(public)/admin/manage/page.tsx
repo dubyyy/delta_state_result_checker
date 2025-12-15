@@ -58,6 +58,13 @@ export default function ManagePage() {
   const [classificationLga, setClassificationLga] = useState<string>("all");
   const [classificationLoading, setClassificationLoading] = useState(false);
   
+  // Result religious classification states
+  const [resultClassificationExam, setResultClassificationExam] = useState("");
+  const [resultClassificationSchool, setResultClassificationSchool] = useState("");
+  const [resultClassificationLga, setResultClassificationLga] = useState<string>("all");
+  const [resultClassificationLoading, setResultClassificationLoading] = useState(false);
+  const [resultClassificationType, setResultClassificationType] = useState<"exam" | "school" | "lga">("exam");
+  
   // Global release states
   const [globalReleaseLoading, setGlobalReleaseLoading] = useState(false);
 
@@ -316,6 +323,58 @@ export default function ManagePage() {
       toast.error("An error occurred while updating classification");
     } finally {
       setClassificationLoading(false);
+    }
+  };
+
+  const handleUpdateResultClassification = async (rgstype: string) => {
+    if (resultClassificationType === "exam" && !resultClassificationExam) {
+      toast.error("Please enter an examination number");
+      return;
+    }
+    if (resultClassificationType === "school" && !resultClassificationSchool) {
+      toast.error("Please enter a school code");
+      return;
+    }
+    if (resultClassificationType === "lga" && resultClassificationLga === "all") {
+      toast.error("Please select an LGA");
+      return;
+    }
+
+    setResultClassificationLoading(true);
+    try {
+      const payload: any = { rgstype };
+      
+      if (resultClassificationType === "exam") {
+        payload.examinationNo = resultClassificationExam;
+      } else if (resultClassificationType === "school") {
+        payload.institutionCd = resultClassificationSchool;
+        if (resultClassificationLga !== "all") {
+          payload.lgaCd = resultClassificationLga;
+        }
+      } else if (resultClassificationType === "lga") {
+        payload.lgaCd = resultClassificationLga;
+      }
+
+      const res = await fetch("/api/admin/result-classification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || `Result(s) classification updated to ${rgstype}`);
+        setResultClassificationExam("");
+        setResultClassificationSchool("");
+        setResultClassificationLga("all");
+      } else {
+        toast.error(data.error || "Failed to update result classification");
+      }
+    } catch (error) {
+      console.error("Error updating result classification:", error);
+      toast.error("An error occurred while updating result classification");
+    } finally {
+      setResultClassificationLoading(false);
     }
   };
 
@@ -699,13 +758,14 @@ export default function ManagePage() {
       <Card>
         <CardHeader>
           <CardTitle>Religious Classification</CardTitle>
-          <CardDescription>Update religious classification for schools (Christian/Muslim)</CardDescription>
+          <CardDescription>Update religious classification for schools and results</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* School Classification */}
           <div className="space-y-3">
             <Label htmlFor="classification-school" className="flex items-center gap-2">
               <Church className="h-4 w-4" />
-              Update School Classification
+              Update School Classification (Christian/Muslim)
             </Label>
             <div className="flex gap-2 flex-wrap">
               <Select value={classificationLga} onValueChange={setClassificationLga}>
@@ -745,6 +805,111 @@ export default function ManagePage() {
                 Muslim
               </Button>
             </div>
+          </div>
+
+          {/* Result Religious Classification */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Update Result Religious Type (IRS/CRS)
+            </Label>
+            
+            {/* Classification Type Selector */}
+            <div className="flex gap-2">
+              <Button
+                variant={resultClassificationType === "exam" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setResultClassificationType("exam")}
+              >
+                By Exam No.
+              </Button>
+              <Button
+                variant={resultClassificationType === "school" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setResultClassificationType("school")}
+              >
+                By School
+              </Button>
+              <Button
+                variant={resultClassificationType === "lga" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setResultClassificationType("lga")}
+              >
+                By LGA
+              </Button>
+            </div>
+
+            {/* Input Fields Based on Type */}
+            <div className="flex gap-2 flex-wrap">
+              {resultClassificationType === "exam" && (
+                <Input
+                  placeholder="Enter Examination Number"
+                  value={resultClassificationExam}
+                  onChange={(e) => setResultClassificationExam(e.target.value)}
+                  className="flex-1 min-w-[200px]"
+                />
+              )}
+              
+              {resultClassificationType === "school" && (
+                <>
+                  <Select value={resultClassificationLga} onValueChange={setResultClassificationLga}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select LGA" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All LGAs</SelectItem>
+                      {lgaCodes.map((code) => (
+                        <SelectItem key={code} value={code}>
+                          {code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Enter School Code"
+                    value={resultClassificationSchool}
+                    onChange={(e) => setResultClassificationSchool(e.target.value)}
+                    className="flex-1 min-w-[200px]"
+                  />
+                </>
+              )}
+              
+              {resultClassificationType === "lga" && (
+                <Select value={resultClassificationLga} onValueChange={setResultClassificationLga}>
+                  <SelectTrigger className="flex-1 min-w-[200px]">
+                    <SelectValue placeholder="Select LGA" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Select LGA</SelectItem>
+                    {lgaCodes.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Button 
+                variant="default" 
+                disabled={resultClassificationLoading}
+                onClick={() => handleUpdateResultClassification("CRS")}
+              >
+                <Church className="h-4 w-4 mr-2" />
+                {resultClassificationLoading ? "Processing..." : "CRS"}
+              </Button>
+              <Button 
+                variant="secondary" 
+                disabled={resultClassificationLoading}
+                onClick={() => handleUpdateResultClassification("IRS")}
+              >
+                <Church className="h-4 w-4 mr-2" />
+                IRS
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              CRS = Christian Religious Studies, IRS = Islamic Religious Studies
+            </p>
           </div>
         </CardContent>
       </Card>

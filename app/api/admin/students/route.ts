@@ -238,6 +238,7 @@ export async function GET(request: NextRequest) {
         firstname: student.firstname,
         othername: student.othername,
         lastname: student.lastname,
+        dateOfBirth: student.dateOfBirth,
         gender: student.gender,
         schoolType: student.schoolType,
         passport: student.passport,

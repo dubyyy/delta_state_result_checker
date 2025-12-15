@@ -102,11 +102,16 @@ const PrimaryResult = () => {
     const year = resultData.sessionYr || 'N/A';
     const printedDate = formatPrintedDate(new Date());
     const logoUrl = `${window.location.origin}/delta-logo.png`;
+    const religiousSubject = resultData.rgstype === 'IRS' 
+      ? 'ISLAMIC RELIGIOUS STUDIES' 
+      : resultData.rgstype === 'CRS' 
+      ? 'CHRISTIAN RELIGIOUS STUDIES'
+      : 'RELIGIOUS STUDIES';
     const subjects = [
       { subject: 'ENGLISH STUDIES', grade: resultData.engGrd || 'N/A' },
       { subject: 'MATHEMATICS', grade: resultData.aritGrd || 'N/A' },
       { subject: 'GENERAL PAPER', grade: resultData.gpGrd || 'N/A' },
-      { subject: 'CHRISTIAN RELIGIOUS STUDIES', grade: resultData.rgsGrd || 'N/A' },
+      { subject: religiousSubject, grade: resultData.rgsGrd || 'N/A' },
     ];
 
     const html = `<!doctype html>
@@ -223,15 +228,19 @@ const PrimaryResult = () => {
 </body>
 </html>`;
 
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const blob = new Blob([html], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    
+    const printWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
     if (!printWindow) {
       setError('Popup blocked. Please allow popups to print.');
+      URL.revokeObjectURL(blobUrl);
       return;
     }
 
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
+    printWindow.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+    };
   };
 
   return (
@@ -372,11 +381,20 @@ const PrimaryResult = () => {
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Religious Studies</span>
+                        <span className="text-sm font-medium">
+                          {resultData.rgstype === 'IRS' 
+                            ? 'Islamic Religious Studies' 
+                            : resultData.rgstype === 'CRS' 
+                            ? 'Christian Religious Studies'
+                            : 'Religious Studies'}
+                        </span>
                         <span className="font-bold text-lg">{resultData.rgsGrd || 'N/A'}</span>
                       </div>
                       {resultData.rgs && (
                         <div className="text-xs text-gray-600 mt-1">Score: {resultData.rgs}</div>
+                      )}
+                      {resultData.rgstype && (
+                        <div className="text-xs text-gray-500 mt-1">Type: {resultData.rgstype}</div>
                       )}
                     </div>
                   </div>
