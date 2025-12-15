@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+const GLOBAL_RESULTS_RELEASE_KEY = '__GLOBAL_RESULTS_RELEASE__';
+
 // GET - List all access PINs
 export async function GET(req: NextRequest) {
   try {
@@ -8,7 +10,10 @@ export async function GET(req: NextRequest) {
     const activeOnly = searchParams.get('activeOnly') === 'true';
 
     const pins = await prisma.accessPin.findMany({
-      where: activeOnly ? { isActive: true } : undefined,
+      where: {
+        ...(activeOnly ? { isActive: true } : {}),
+        pin: { not: GLOBAL_RESULTS_RELEASE_KEY },
+      },
       orderBy: {
         createdAt: 'desc',
       },

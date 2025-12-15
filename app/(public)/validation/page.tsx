@@ -10,8 +10,11 @@ import { ArrowLeft, Loader2, Edit, Printer, X, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import schoolsData from '@/data.json';
 
-interface StudentRegistration {
+type RegistrationSource = "student" | "post";
+
+interface Registration {
   id: string;
   studentNumber: string;
   firstname: string;
@@ -35,6 +38,7 @@ interface StudentRegistration {
   religiousTerm2: string;
   religiousTerm3: string;
   createdAt: string;
+  source: RegistrationSource;
 }
 
 // LGA options
@@ -83,16 +87,17 @@ const Validation = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string>("");
   const [authenticatedSchool, setAuthenticatedSchool] = useState<string>("");
-  const [registrations, setRegistrations] = useState<StudentRegistration[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [isFetchingData, setIsFetchingData] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string>("");
-  const [editingStudent, setEditingStudent] = useState<StudentRegistration | null>(null);
+  const [editingStudent, setEditingStudent] = useState<Registration | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [editFormData, setEditFormData] = useState<StudentRegistration | null>(null);
+  const [editFormData, setEditFormData] = useState<Registration | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [editError, setEditError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [printType, setPrintType] = useState<string>("name");
+  const [registrationModel, setRegistrationModel] = useState<string>("all");
 
   // Check for existing JWT token on component mount
   useEffect(() => {
@@ -132,21 +137,55 @@ const Validation = () => {
           return;
         }
 
-        const response = await fetch('/api/school/registrations', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        const [studentRes, postRes] = await Promise.all([
+          fetch('/api/school/registrations', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }),
+          fetch('/api/school/post-registrations', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }),
+        ]);
 
-        const data = await response.json();
+        const [studentData, postData] = await Promise.all([
+          studentRes.json(),
+          postRes.json(),
+        ]);
 
-        if (!response.ok) {
-          setFetchError(data.error || 'Failed to fetch registrations');
+        if (!studentRes.ok) {
+          setFetchError(studentData.error || 'Failed to fetch registrations');
           return;
         }
 
-        setRegistrations(data.registrations || []);
+        if (!postRes.ok) {
+          setFetchError(postData.error || 'Failed to fetch post-registrations');
+          return;
+        }
+
+        const studentRegs: Registration[] = (studentData.registrations || []).map((r: any) => ({
+          ...r,
+          othername: r.othername ?? "",
+          religiousType: r.religiousType ?? "",
+          source: "student" as const,
+        }));
+
+        const postRegs: Registration[] = (postData.registrations || []).map((r: any) => ({
+          ...r,
+          othername: r.othername ?? "",
+          religiousType: r.religiousType ?? "",
+          source: "post" as const,
+        }));
+
+        const combined = [...studentRegs, ...postRegs].sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        setRegistrations(combined);
       } catch (error) {
         console.error('Fetch error:', error);
         setFetchError('An error occurred while fetching data. Please try again.');
@@ -158,7 +197,7 @@ const Validation = () => {
     fetchRegistrations();
   }, [isLoggedIn]);
 
-  const handleEdit = (student: StudentRegistration) => {
+  const handleEdit = (student: Registration) => {
     setEditingStudent(student);
     setEditFormData({ ...student });
     setIsEditModalOpen(true);
@@ -172,13 +211,29 @@ const Validation = () => {
     setEditError("");
   };
 
-  const handleEditFormChange = (field: keyof StudentRegistration, value: string) => {
+  const handleEditFormChange = (field: keyof Registration, value: string) => {
     if (editFormData) {
       setEditFormData({
         ...editFormData,
         [field]: value
       });
     }
+  };
+
+  const handleEditPassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setEditFormData(prev => (prev ? { ...prev, passport: result } : prev));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePassport = () => {
+    setEditFormData(prev => (prev ? { ...prev, passport: null } : prev));
   };
 
   const handleSaveEdit = async () => {
@@ -198,14 +253,55 @@ const Validation = () => {
       console.log('Updating student:', editFormData.id);
       console.log('Request data:', editFormData);
 
-      const response = await fetch(`/api/school/registrations/${editFormData.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editFormData),
-      });
+      const response = await (editFormData.source === "post"
+        ? fetch(`/api/school/post-registrations`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: editFormData.id,
+              update: {
+                firstname: editFormData.firstname,
+                othername: editFormData.othername,
+                lastname: editFormData.lastname,
+                dateOfBirth: editFormData.dateOfBirth,
+                gender: editFormData.gender,
+                schoolType: editFormData.schoolType,
+                passport: editFormData.passport,
+                english: {
+                  term1: editFormData.englishTerm1,
+                  term2: editFormData.englishTerm2,
+                  term3: editFormData.englishTerm3,
+                },
+                arithmetic: {
+                  term1: editFormData.arithmeticTerm1,
+                  term2: editFormData.arithmeticTerm2,
+                  term3: editFormData.arithmeticTerm3,
+                },
+                general: {
+                  term1: editFormData.generalTerm1,
+                  term2: editFormData.generalTerm2,
+                  term3: editFormData.generalTerm3,
+                },
+                religious: {
+                  type: editFormData.religiousType,
+                  term1: editFormData.religiousTerm1,
+                  term2: editFormData.religiousTerm2,
+                  term3: editFormData.religiousTerm3,
+                },
+              },
+            }),
+          })
+        : fetch(`/api/school/registrations/${editFormData.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(editFormData),
+          }));
 
       console.log('Response status:', response.status);
 
@@ -221,7 +317,7 @@ const Validation = () => {
 
       // Update the local registrations state
       setRegistrations(prevRegs => 
-        prevRegs.map(reg => reg.id === editFormData.id ? editFormData : reg)
+        prevRegs.map(reg => (reg.id === editFormData.id && reg.source === editFormData.source) ? editFormData : reg)
       );
 
       console.log('Student updated successfully');
@@ -244,8 +340,17 @@ const Validation = () => {
     pageHeight: number,
     margin: number
   ) => {
-    // Get LGA name from code
-    const lgaName = LGAS.find(lga => lga.code === lgaCode)?.name || 'ANIOCHA-NORTH';
+    const schoolData = (schoolsData as any[]).find(
+      (s) =>
+        (s.lCode === lgaCode || s.lgaCode === lgaCode) &&
+        s.schCode === schoolCode
+    );
+
+    const headerLgaCode = (schoolData?.lgaCode ? String(schoolData.lgaCode) : lgaCode) || '';
+
+    const lgaName =
+      LGAS.find((lga) => lga.code === (schoolData?.lCode || lgaCode))?.name ||
+      'ANIOCHA-NORTH';
     
     // Center text helper
     const centerText = (text: string, size: number, y: number, font: any) => {
@@ -267,7 +372,7 @@ const Validation = () => {
     currentY -= 25;
 
     // Line 2: LGA and School information
-    const line2 = `LGA: ${lgaCode} :: ${lgaName} SCHOOL CODE: ${schoolCode} : ${authenticatedSchool.toUpperCase()}`;
+    const line2 = `LGA: ${headerLgaCode} :: ${lgaName} SCHOOL CODE: ${schoolCode} : ${authenticatedSchool.toUpperCase()}`;
     centerText(line2, 10, currentY, boldFont);
     currentY -= 25;
 
@@ -425,7 +530,7 @@ const Validation = () => {
         });
 
         // Full name
-        const fullName = `${student.lastname.toUpperCase()} ${student.othername.toUpperCase()} ${student.firstname.toUpperCase()}`;
+        const fullName = `${student.lastname.toUpperCase()} ${(student.othername || "").toUpperCase()} ${student.firstname.toUpperCase()}`;
         
         // Row text
         page.drawText(`${index + 1}`, {
@@ -672,7 +777,7 @@ const Validation = () => {
         // Prepare row data
         const rowData = [
           truncateText(student.lastname.toUpperCase(), colLastName - 4, 7),
-          truncateText(student.othername.toUpperCase(), colMiddleName - 4, 7),
+          truncateText((student.othername || "").toUpperCase(), colMiddleName - 4, 7),
           truncateText(student.firstname.toUpperCase(), colFirstName - 4, 7),
           lgaCode,
           schoolCode,
@@ -857,7 +962,7 @@ const Validation = () => {
         }
         
         // Draw student information below photo
-        const fullName = `${student.lastname.toUpperCase()} ${student.othername.toUpperCase()} ${student.firstname.toUpperCase()}`;
+        const fullName = `${student.lastname.toUpperCase()} ${(student.othername || "").toUpperCase()} ${student.firstname.toUpperCase()}`;
         const nameY = photoY - 15;
         
         // Truncate name if too long
@@ -1134,12 +1239,16 @@ const Validation = () => {
                   </div>
                 ) : registrations.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No student registrations found. Students registered in the school-registration page will appear here.
+                    No registrations found. Students registered in the school-registration or post-registration pages will appear here.
                   </div>
                 ) : (
                   <div>
                     {(() => {
                       const filteredRegistrations = registrations.filter((student) => {
+                        if (registrationModel !== "all") {
+                          if (registrationModel === "post" && student.source !== "post") return false;
+                          if (registrationModel === "student" && student.source !== "student") return false;
+                        }
                         if (!searchQuery) return true;
                         const query = searchQuery.toLowerCase();
                         const fullName = `${student.lastname} ${student.othername} ${student.firstname}`.toLowerCase();
@@ -1167,6 +1276,16 @@ const Validation = () => {
                                 className="pl-10"
                               />
                             </div>
+                            <Select value={registrationModel} onValueChange={setRegistrationModel}>
+                              <SelectTrigger className="w-[240px]">
+                                <SelectValue placeholder="Select model" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Models</SelectItem>
+                                <SelectItem value="student">StudentRegistration</SelectItem>
+                                <SelectItem value="post">PostRegistration</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <div className="flex gap-2">
                               <Select value={printType} onValueChange={setPrintType}>
                                 <SelectTrigger className="w-[280px]">
@@ -1209,6 +1328,7 @@ const Validation = () => {
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead>Passport</TableHead>
+                                    <TableHead>Model</TableHead>
                                     <TableHead>Student Number</TableHead>
                                     <TableHead>Full Name</TableHead>
                                     <TableHead>Date of Birth</TableHead>
@@ -1237,6 +1357,9 @@ const Validation = () => {
                                     No Photo
                                   </div>
                                 )}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {student.source === "post" ? "PostRegistration" : "StudentRegistration"}
                               </TableCell>
                               <TableCell className="font-medium">{student.studentNumber}</TableCell>
                               <TableCell>
@@ -1319,9 +1442,9 @@ const Validation = () => {
           {editFormData && (
             <div className="space-y-6">
               {/* Passport Photo Section */}
-              {editFormData.passport && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Student Passport</h3>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Student Passport</h3>
+                {editFormData.passport && (
                   <div className="flex justify-center">
                     <img 
                       src={editFormData.passport} 
@@ -1329,8 +1452,30 @@ const Validation = () => {
                       className="w-32 h-32 object-cover rounded-lg border-2 border-gray-300 shadow-sm"
                     />
                   </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-passport">Replace Passport</Label>
+                    <Input
+                      id="edit-passport"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditPassportChange}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex md:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleRemovePassport}
+                      disabled={isSavingEdit}
+                    >
+                      Remove Passport
+                    </Button>
+                  </div>
                 </div>
-              )}
+              </div>
               
               {/* Personal Information Section */}
               <div className="space-y-4">
@@ -1397,7 +1542,7 @@ const Validation = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit-religiousType">Religious Type</Label>
-                    <Select value={editFormData.religiousType} onValueChange={(value) => handleEditFormChange('religiousType', value)}>
+                    <Select value={editFormData.religiousType || ""} onValueChange={(value) => handleEditFormChange('religiousType', value)}>
                       <SelectTrigger id="edit-religiousType">
                         <SelectValue />
                       </SelectTrigger>

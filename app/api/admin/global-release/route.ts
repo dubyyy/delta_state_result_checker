@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
+const GLOBAL_RESULTS_RELEASE_KEY = "__GLOBAL_RESULTS_RELEASE__";
+
 /**
  * POST /api/admin/global-release
  * Body: { released: boolean }
@@ -29,6 +31,12 @@ export async function POST(req: NextRequest) {
     // When released is true, we unblock (blocked = false)
     // When released is false, we block (blocked = true)
     const blocked = !released;
+
+    await prisma.accessPin.upsert({
+      where: { pin: GLOBAL_RESULTS_RELEASE_KEY },
+      update: { isActive: released },
+      create: { pin: GLOBAL_RESULTS_RELEASE_KEY, isActive: released },
+    });
 
     const updateResult = await prisma.result.updateMany({
       data: { blocked: blocked },
@@ -67,11 +75,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const globalSetting = await prisma.accessPin.findUnique({
+      where: { pin: GLOBAL_RESULTS_RELEASE_KEY },
+      select: { isActive: true },
+    });
+
     const totalResults = await prisma.result.count();
     const blockedResults = await prisma.result.count({
       where: { blocked: true },
     });
     const releasedResults = totalResults - blockedResults;
+
+    const globalReleased = globalSetting ? globalSetting.isActive : blockedResults === 0;
 
     return NextResponse.json({
       totalResults,
@@ -79,6 +94,7 @@ export async function GET(req: NextRequest) {
       releasedResults,
       allReleased: blockedResults === 0,
       allBlocked: releasedResults === 0,
+      released: globalReleased,
     });
   } catch (error) {
     console.error("Error fetching global release status:", error);

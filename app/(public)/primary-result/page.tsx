@@ -9,7 +9,7 @@ import { useState } from "react";
 
 const PrimaryResult = () => {
   const [formData, setFormData] = useState({
-    pinCode: "",
+    accessPin: "",
     examNumber: "",
   });
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ const PrimaryResult = () => {
 
     try {
       const response = await fetch(
-        `/api/results?pinCode=${encodeURIComponent(formData.pinCode)}&examNumber=${encodeURIComponent(formData.examNumber)}`
+        `/api/results?accessPin=${encodeURIComponent(formData.accessPin)}&examNumber=${encodeURIComponent(formData.examNumber)}`
       );
 
       const data = await response.json();
@@ -61,7 +61,7 @@ const PrimaryResult = () => {
     setDownloadingPDF(true);
     try {
       const response = await fetch(
-        `/api/results/pdf?pinCode=${encodeURIComponent(formData.pinCode)}&examNumber=${encodeURIComponent(formData.examNumber)}`
+        `/api/results/pdf?accessPin=${encodeURIComponent(formData.accessPin)}&examNumber=${encodeURIComponent(formData.examNumber)}`
       );
 
       if (!response.ok) {
@@ -90,44 +90,148 @@ const PrimaryResult = () => {
     }
   };
 
-  const handlePrint = async () => {
+  const formatPrintedDate = (date: Date) => {
+    const d = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.replace(/\s/g, '-');
+  };
+
+  const handlePrint = () => {
     if (!resultData) return;
-    
-    try {
-      const response = await fetch(
-        `/api/results/pdf?pinCode=${encodeURIComponent(formData.pinCode)}&examNumber=${encodeURIComponent(formData.examNumber)}`
-      );
 
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || 'Failed to generate PDF');
-        return;
-      }
+    const candidateName = [resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ');
+    const year = resultData.sessionYr || 'N/A';
+    const printedDate = formatPrintedDate(new Date());
+    const logoUrl = `${window.location.origin}/delta-logo.png`;
+    const subjects = [
+      { subject: 'ENGLISH STUDIES', grade: resultData.engGrd || 'N/A' },
+      { subject: 'MATHEMATICS', grade: resultData.aritGrd || 'N/A' },
+      { subject: 'GENERAL PAPER', grade: resultData.gpGrd || 'N/A' },
+      { subject: 'CHRISTIAN RELIGIOUS STUDIES', grade: resultData.rgsGrd || 'N/A' },
+    ];
 
-      // Open PDF in new window for printing
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const printWindow = window.open(url, '_blank');
-      
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-      } else {
-        // Fallback: download if popup blocked
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Result_${resultData.examinationNo}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to print PDF';
-      setError(errorMsg);
-      console.error("Print Error:", err);
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Primary Result</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #000; }
+    .paper { max-width: 760px; margin: 0 auto; }
+    .outer { border: 1px dotted #000; padding: 10px; }
+    .inner { border: 1px solid #000; padding: 12px; }
+    .center { text-align: center; }
+    .title1 { font-weight: 700; font-size: 14px; letter-spacing: 0.3px; }
+    .title2 { font-weight: 700; font-size: 12px; margin-top: 6px; }
+    .title3 { font-weight: 700; font-size: 12px; }
+    .subtitle { font-weight: 700; font-size: 12px; margin-top: 2px; }
+    .logoWrap { margin: 10px 0 6px; display: flex; justify-content: center; }
+    .logo { width: 74px; height: 74px; object-fit: contain; }
+    .metaRow { display: flex; justify-content: space-between; gap: 16px; font-size: 12px; margin: 8px 0; padding: 6px 0; border-top: 1px dotted #999; border-bottom: 1px dotted #999; }
+    .infoTable { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+    .infoTable td { padding: 6px 8px; border-bottom: 1px dotted #999; vertical-align: top; }
+    .infoTable tr:last-child td { border-bottom: 0; }
+    .sectionBox { border: 1px solid #000; margin-top: 10px; }
+    .sectionInner { padding: 8px; }
+    .gradesTable { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 2px; }
+    .gradesTable th { text-align: left; padding: 6px 8px; border-bottom: 1px solid #000; }
+    .gradesTable td { padding: 6px 8px; border-bottom: 1px dotted #999; }
+    .gradesTable tr:last-child td { border-bottom: 0; }
+    .remark { font-size: 12px; margin-top: 10px; padding-top: 8px; border-top: 1px dotted #999; }
+    .actions { display: flex; justify-content: center; gap: 10px; margin-top: 12px; padding-top: 8px; border-top: 1px dotted #999; }
+    .btn { font-size: 12px; padding: 4px 14px; border: 1px solid #000; background: #f3f3f3; cursor: pointer; }
+    .footer { margin-top: 10px; padding-top: 8px; border-top: 1px dotted #999; text-align: center; font-size: 12px; }
+    .footerSmall { font-size: 11px; margin-top: 2px; }
+    @media print {
+      .actions { display: none !important; }
+      .paper { max-width: none; }
     }
+  </style>
+</head>
+<body>
+  <div class="paper">
+    <div class="outer">
+      <div class="inner">
+        <div class="center">
+          <div class="title1">FEDERAL REPUBLIC OF NIGERIA</div>
+          <div class="logoWrap"><img class="logo" src="${logoUrl}" alt="Logo" /></div>
+          <div class="title2">MINISTRY OF PRIMARY EDUCATION ASABA,</div>
+          <div class="title3">Delta State.</div>
+          <div class="subtitle">Cognitive/Placement Certification Result</div>
+        </div>
+
+        <div class="metaRow">
+          <div>Year: ${year}</div>
+          <div>Date Printed: ${printedDate}</div>
+        </div>
+
+        <div class="sectionBox">
+          <div class="sectionInner">
+            <table class="infoTable">
+              <tr>
+                <td>Candidate Name: ${candidateName || 'N/A'} Sex: ${resultData.sexCd || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td>School : ${resultData.schoolName || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td>Local Government Area: ${resultData.lgaCd || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td>Examination Number: ${resultData.examinationNo || 'N/A'}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="sectionBox">
+          <div class="sectionInner">
+            <table class="gradesTable">
+              <thead>
+                <tr>
+                  <th style="width:70%">Subject(s)</th>
+                  <th style="width:30%">Grade</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${subjects
+                  .map(
+                    (s) => `\n                <tr><td>${s.subject}</td><td>${s.grade}</td></tr>`
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+
+            <div class="remark">Remark: ${resultData.remark || 'N/A'}</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" onclick="window.close()">Close</button>
+          <button class="btn" onclick="window.print()">Print</button>
+        </div>
+
+        <div class="footer">
+          <div>DELTA STATE MINISTRY OF PRIMARY EDUCATION PORTAL -</div>
+          <div class="footerSmall">Powered by Ventud Limited</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      setError('Popup blocked. Please allow popups to print.');
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   return (
@@ -157,12 +261,12 @@ const PrimaryResult = () => {
                 )}
                 
                 <div className="space-y-2">
-                  <Label htmlFor="pinCode">Access Pin</Label>
+                  <Label htmlFor="accessPin">Access Pin</Label>
                   <Input
-                    id="pinCode"
+                    id="accessPin"
                     placeholder="Enter your access pin"
                     type="text"
-                    value={formData.pinCode}
+                    value={formData.accessPin}
                     onChange={handleChange}
                     required
                     disabled={loading}

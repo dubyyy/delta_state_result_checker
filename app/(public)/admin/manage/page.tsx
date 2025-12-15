@@ -211,18 +211,10 @@ export default function ManagePage() {
 
     setBlockResultLoading(true);
     try {
-      const result = await fetch(`/api/results?examNumber=${encodeURIComponent(blockResultExam)}`);
-      if (!result.ok) {
-        toast.error("Result not found");
-        setBlockResultLoading(false);
-        return;
-      }
-      const resultData = await result.json();
-
-      const res = await fetch("/api/admin/results", {
-        method: "PUT",
+      const res = await fetch("/api/admin/block", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: resultData.id, blocked }),
+        body: JSON.stringify({ type: "student", examNumber: blockResultExam, blocked }),
       });
 
       const data = await res.json();

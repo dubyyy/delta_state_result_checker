@@ -65,10 +65,45 @@ export async function PATCH(
     console.log('Updating student ID:', studentId);
     console.log('Update data received:', updateData);
 
-    // Validate required fields
-    if (!updateData.firstname || !updateData.lastname || !updateData.gender) {
+    const data: any = {};
+
+    if (typeof updateData.firstname === 'string') data.firstname = updateData.firstname;
+    if (typeof updateData.othername === 'string' || updateData.othername === null) data.othername = updateData.othername;
+    if (typeof updateData.lastname === 'string') data.lastname = updateData.lastname;
+    if (typeof updateData.gender === 'string') data.gender = updateData.gender;
+    if (typeof updateData.schoolType === 'string') data.schoolType = updateData.schoolType;
+
+    if (typeof updateData.passport === 'string' || updateData.passport === null) data.passport = updateData.passport;
+
+    if (typeof updateData.dateOfBirth === 'string') {
+      data.dateOfBirth = updateData.dateOfBirth ? new Date(updateData.dateOfBirth) : null;
+    } else if (updateData.dateOfBirth === null) {
+      data.dateOfBirth = null;
+    }
+
+    if (typeof updateData.englishTerm1 === 'string' || updateData.englishTerm1 === null) data.englishTerm1 = updateData.englishTerm1;
+    if (typeof updateData.englishTerm2 === 'string' || updateData.englishTerm2 === null) data.englishTerm2 = updateData.englishTerm2;
+    if (typeof updateData.englishTerm3 === 'string' || updateData.englishTerm3 === null) data.englishTerm3 = updateData.englishTerm3;
+
+    if (typeof updateData.arithmeticTerm1 === 'string' || updateData.arithmeticTerm1 === null) data.arithmeticTerm1 = updateData.arithmeticTerm1;
+    if (typeof updateData.arithmeticTerm2 === 'string' || updateData.arithmeticTerm2 === null) data.arithmeticTerm2 = updateData.arithmeticTerm2;
+    if (typeof updateData.arithmeticTerm3 === 'string' || updateData.arithmeticTerm3 === null) data.arithmeticTerm3 = updateData.arithmeticTerm3;
+
+    if (typeof updateData.generalTerm1 === 'string' || updateData.generalTerm1 === null) data.generalTerm1 = updateData.generalTerm1;
+    if (typeof updateData.generalTerm2 === 'string' || updateData.generalTerm2 === null) data.generalTerm2 = updateData.generalTerm2;
+    if (typeof updateData.generalTerm3 === 'string' || updateData.generalTerm3 === null) data.generalTerm3 = updateData.generalTerm3;
+
+    if (typeof updateData.religiousType === 'string' || updateData.religiousType === null) data.religiousType = updateData.religiousType;
+    if (typeof updateData.religiousTerm1 === 'string' || updateData.religiousTerm1 === null) data.religiousTerm1 = updateData.religiousTerm1;
+    if (typeof updateData.religiousTerm2 === 'string' || updateData.religiousTerm2 === null) data.religiousTerm2 = updateData.religiousTerm2;
+    if (typeof updateData.religiousTerm3 === 'string' || updateData.religiousTerm3 === null) data.religiousTerm3 = updateData.religiousTerm3;
+
+    if (typeof updateData.year === 'string') data.year = updateData.year;
+    if (typeof updateData.prcd === 'number') data.prcd = updateData.prcd;
+
+    if (Object.keys(data).length === 0) {
       return NextResponse.json(
-        { error: 'Missing required fields: firstname, lastname, or gender' },
+        { error: 'No valid fields provided to update.' },
         { status: 400 }
       );
     }
@@ -76,29 +111,7 @@ export async function PATCH(
     // Update the student record
     const updatedStudent = await prisma.studentRegistration.update({
       where: { id: studentId },
-      data: {
-        firstname: updateData.firstname,
-        othername: updateData.othername || '',
-        lastname: updateData.lastname,
-        dateOfBirth: updateData.dateOfBirth ? new Date(updateData.dateOfBirth) : null,
-        gender: updateData.gender,
-        schoolType: updateData.schoolType,
-        englishTerm1: updateData.englishTerm1,
-        englishTerm2: updateData.englishTerm2,
-        englishTerm3: updateData.englishTerm3,
-        arithmeticTerm1: updateData.arithmeticTerm1,
-        arithmeticTerm2: updateData.arithmeticTerm2,
-        arithmeticTerm3: updateData.arithmeticTerm3,
-        generalTerm1: updateData.generalTerm1,
-        generalTerm2: updateData.generalTerm2,
-        generalTerm3: updateData.generalTerm3,
-        religiousType: updateData.religiousType,
-        religiousTerm1: updateData.religiousTerm1,
-        religiousTerm2: updateData.religiousTerm2,
-        religiousTerm3: updateData.religiousTerm3,
-        year: updateData.year || '2025/2026',
-        prcd: updateData.prcd || 1,
-      },
+      data,
     });
 
     console.log('Student updated successfully:', updatedStudent.id);

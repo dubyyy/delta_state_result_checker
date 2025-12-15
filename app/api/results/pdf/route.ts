@@ -3,31 +3,78 @@ import { prisma } from '@/lib/prisma';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
+import crypto from 'crypto';
+
+const GLOBAL_RESULTS_RELEASE_KEY = '__GLOBAL_RESULTS_RELEASE__';
+
+const timingSafeEqualString = (a: string, b: string) => {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+};
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const pinCode = searchParams.get('pinCode');
+    const accessPin = searchParams.get('accessPin') ?? searchParams.get('pinCode');
     const serialNumber = searchParams.get('serial');
     const examinationNumber = searchParams.get('examNumber');
 
     // Validate required fields
-    if (!pinCode || !examinationNumber) {
+    if (!accessPin || !examinationNumber) {
       return NextResponse.json(
         { error: 'Access Pin and Examination Number are required.' },
         { status: 400 }
       );
     }
 
+    const masterPin = process.env.MASTER_PIN;
+    const isMasterPin =
+      typeof masterPin === 'string' &&
+      masterPin.length > 0 &&
+      timingSafeEqualString(accessPin, masterPin);
+
+    if (!isMasterPin) {
+      const globalSetting = await prisma.accessPin.findUnique({
+        where: { pin: GLOBAL_RESULTS_RELEASE_KEY },
+        select: { isActive: true },
+      });
+
+      if (globalSetting && !globalSetting.isActive) {
+        return NextResponse.json(
+          { error: 'Results access is currently disabled.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Query database - Type assertion due to Prisma client being out of sync with schema
     const result: any = await prisma.result.findFirst({
       where: {
-        accessPin: pinCode,
+        ...(isMasterPin ? {} : { accessPin }),
         examinationNo: examinationNumber,
+        ...(isMasterPin ? {} : { blocked: false }),
       } as any,
     });
 
     if (!result) {
+      const blockedResult = await prisma.result.findFirst({
+        where: {
+          ...(isMasterPin ? {} : { accessPin }),
+          examinationNo: examinationNumber,
+          blocked: true,
+        } as any,
+        select: { id: true } as any,
+      });
+
+      if (blockedResult && !isMasterPin) {
+        return NextResponse.json(
+          { error: 'Access to this result has been disabled.' },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
         { error: 'No result found with the provided credentials.' },
         { status: 404 }

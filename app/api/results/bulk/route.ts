@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
+const GLOBAL_RESULTS_RELEASE_KEY = '__GLOBAL_RESULTS_RELEASE__';
+
 interface CSVRow {
   SESSIONYR: string;
   FNAME: string;
@@ -83,6 +85,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const globalSetting = await prisma.accessPin.findUnique({
+      where: { pin: GLOBAL_RESULTS_RELEASE_KEY },
+      select: { isActive: true },
+    });
+
+    const shouldBlockNewResults = globalSetting ? !globalSetting.isActive : false;
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -145,7 +154,7 @@ export async function POST(request: NextRequest) {
     let createdCount = 0;
     if (resultsToCreate.length > 0) {
       const result = await prisma.result.createMany({
-        data: resultsToCreate,
+        data: resultsToCreate.map((r) => ({ ...r, blocked: shouldBlockNewResults })),
         skipDuplicates: true,
       });
       createdCount = result.count;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getLGAName, getLGACode } from "@/lib/lga-mapping";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import schoolsData from "@/data.json";
 
 export async function GET(request: NextRequest) {
   // Rate limiting
@@ -180,22 +181,50 @@ export async function GET(request: NextRequest) {
     
     // Fetch lCode from SchoolData for each student
     // Note: School.lgaCode contains the actual LGA code (lCode in SchoolData)
-    const schoolDataMap = new Map();
+    const schoolDataMap = new Map<string, string>();
     const uniqueSchools = [...new Set(allStudents.map(s => `${s.school.lgaCode}-${s.school.schoolCode}`))];
     
     for (const schoolKey of uniqueSchools) {
       const [schoolLgaCode, schoolCode] = schoolKey.split('-');
-      const schoolData = await prisma.schoolData.findFirst({
-        where: {
-          lCode: schoolLgaCode,  // Match School.lgaCode with SchoolData.lCode
-          schCode: schoolCode,
-        },
-        select: {
-          lgaCode: true,  // Get the sequential lgaCode (1, 2, 3, etc.)
-        },
-      });
-      if (schoolData) {
-        schoolDataMap.set(schoolKey, schoolData.lgaCode);
+      const normalizedSchoolCode = schoolCode.replace(/^0+/, "") || schoolCode;
+      const schoolCodesToTry = Array.from(new Set([schoolCode, normalizedSchoolCode]));
+      
+      let resolvedSequentialLgaCode: string | null = null;
+
+      for (const schCode of schoolCodesToTry) {
+        const schoolData = await prisma.schoolData.findFirst({
+          where: {
+            schCode,
+            OR: [{ lCode: schoolLgaCode }, { lgaCode: schoolLgaCode }],
+          },
+          select: {
+            lgaCode: true,
+          },
+        });
+
+        if (schoolData?.lgaCode) {
+          resolvedSequentialLgaCode = schoolData.lgaCode;
+          break;
+        }
+      }
+
+      if (!resolvedSequentialLgaCode) {
+        for (const schCode of schoolCodesToTry) {
+          const fromJson = (schoolsData as any[]).find(
+            (s) =>
+              (s.lCode === schoolLgaCode || s.lgaCode === schoolLgaCode) &&
+              s.schCode === schCode
+          );
+
+          if (fromJson?.lgaCode) {
+            resolvedSequentialLgaCode = String(fromJson.lgaCode);
+            break;
+          }
+        }
+      }
+
+      if (resolvedSequentialLgaCode) {
+        schoolDataMap.set(schoolKey, resolvedSequentialLgaCode);
       }
     }
     

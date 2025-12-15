@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import schoolsData from '@/data.json';
 
+const GLOBAL_RESULTS_RELEASE_KEY = '__GLOBAL_RESULTS_RELEASE__';
+
 interface SchoolData {
   lgaCode: string;
   lCode: string;
@@ -44,6 +46,13 @@ export async function POST(req: NextRequest) {
         isActive: true,
       },
     });
+
+    if (accessPin === GLOBAL_RESULTS_RELEASE_KEY) {
+      return NextResponse.json(
+        { error: 'Invalid or inactive access PIN. Please check your PIN and try again.' },
+        { status: 401 }
+      );
+    }
 
     if (!validPin) {
       return NextResponse.json(
