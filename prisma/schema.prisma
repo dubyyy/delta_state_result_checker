@@ -52,16 +52,17 @@ model VerificationToken {
 }
 
 model Result {
-  id            Int     @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   sessionYr     String
   fName         String
   mName         String?
   lName         String
+  dateOfBirth   DateTime?
   sexCd         String
   institutionCd String
   schoolName    String
   lgaCd         String
-  examinationNo String  @unique
+  examinationNo String    @unique
   eng           Float?
   engGrd        String?
   arit          Float?
@@ -70,10 +71,10 @@ model Result {
   gpGrd         String?
   rgs           Float?
   rgsGrd        String?
-  rgstype       String? // Added: Religious type (IRS/CRS)
+  rgstype       String?   // Added: Religious type (IRS/CRS)
   remark        String?
   accessPin     String
-  blocked       Boolean @default(false) // Added: Block status
+  blocked       Boolean   @default(false) // Added: Block status
 
   @@map("Result")
 }

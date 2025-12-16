@@ -41,6 +41,7 @@ interface CSVRow {
   FNAME: string;
   MNAME: string;
   LNAME: string;
+  DATEOFBIRTH: string;
   SEXCD: string;
   INSTITUTIONCD: string;
   SCHOOLCODE: string;
@@ -92,6 +93,7 @@ function mapCSVRowToResult(row: CSVRow) {
     fName: row.FNAME,
     mName: row.MNAME || null,
     lName: row.LNAME,
+    dateOfBirth: row.DATEOFBIRTH ? new Date(row.DATEOFBIRTH) : null,
     sexCd: row.SEXCD,
     institutionCd: row.INSTITUTIONCD,
     schoolName: schoolName || `UNKNOWN (Code: ${row.SCHOOLCODE})`,
