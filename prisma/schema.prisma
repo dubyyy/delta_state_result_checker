@@ -59,7 +59,7 @@ model Result {
   lName         String
   dateOfBirth   DateTime?
   sexCd         String
-  institutionCd String
+  institutionCd String?
   schoolName    String
   lgaCd         String
   examinationNo String    @unique

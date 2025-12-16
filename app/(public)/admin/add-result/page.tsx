@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ToastProvider, useToast } from "@/hooks/use-toast";
-import { Upload, FileSpreadsheet } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2 } from "lucide-react";
 
 const ResultFormContent = () => {
   const { addToast } = useToast();
@@ -151,7 +151,10 @@ const ResultFormContent = () => {
                     disabled={!csvFile || isUploadingCSV}
                   >
                     {isUploadingCSV ? (
-                      'Uploading...'
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
                     ) : (
                       <>
                         <Upload className="h-4 w-4 mr-2" />
@@ -161,6 +164,29 @@ const ResultFormContent = () => {
                   </Button>
                 </div>
               </form>
+
+              {/* Loading Overlay */}
+              {isUploadingCSV && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="bg-card border rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+                    <div className="flex flex-col items-center space-y-4">
+                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                      <div className="text-center space-y-2">
+                        <h3 className="text-lg font-semibold">Processing CSV File</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Please wait while we upload and process your examination results...
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          This may take a few moments depending on file size
+                        </p>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                        <div className="bg-primary h-full animate-pulse" style={{ width: '100%' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Instructions */}
               <div className="border-t pt-4">
