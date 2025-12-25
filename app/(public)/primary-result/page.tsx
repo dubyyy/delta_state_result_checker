@@ -102,6 +102,7 @@ const PrimaryResult = () => {
     const year = resultData.sessionYr || 'N/A';
     const printedDate = formatPrintedDate(new Date());
     const logoUrl = `${window.location.origin}/delta-logo.png`;
+    const passportUrl = resultData.passport || '';
     const religiousSubject = resultData.rgstype === 'IRS' 
       ? 'ISLAMIC RELIGIOUS STUDIES' 
       : resultData.rgstype === 'CRS' 
@@ -138,6 +139,8 @@ const PrimaryResult = () => {
     .infoTable { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
     .infoTable td { padding: 6px 8px; border-bottom: 1px dotted #999; vertical-align: top; }
     .infoTable tr:last-child td { border-bottom: 0; }
+    .passportPhoto { width: 100px; height: 120px; object-fit: cover; border: 1px solid #000; }
+    .infoSection { display: flex; gap: 10px; align-items: flex-start; }
     .sectionBox { border: 1px solid #000; margin-top: 10px; }
     .sectionInner { padding: 8px; }
     .gradesTable { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 2px; }
@@ -174,20 +177,23 @@ const PrimaryResult = () => {
 
         <div class="sectionBox">
           <div class="sectionInner">
-            <table class="infoTable">
-              <tr>
-                <td>Candidate Name: ${candidateName || 'N/A'} Sex: ${resultData.sexCd || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td>School : ${resultData.schoolName || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td>Local Government Area: ${resultData.lgaCd || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td>Examination Number: ${resultData.examinationNo || 'N/A'}</td>
-              </tr>
-            </table>
+            <div class="infoSection">
+              ${passportUrl ? `<img class="passportPhoto" src="${passportUrl}" alt="Passport" />` : ''}
+              <table class="infoTable" style="flex: 1;">
+                <tr>
+                  <td>Candidate Name: ${candidateName || 'N/A'} Sex: ${resultData.sexCd || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td>School : ${resultData.schoolName || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td>Local Government Area: ${resultData.lgaCd || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td>Examination Number: ${resultData.examinationNo || 'N/A'}</td>
+                </tr>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -312,6 +318,17 @@ const PrimaryResult = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Passport Photo */}
+                {resultData.passport && (
+                  <div className="flex justify-center">
+                    <img 
+                      src={resultData.passport} 
+                      alt="Passport Photo" 
+                      className="w-32 h-40 object-cover border-2 border-gray-300 rounded-lg shadow-md"
+                    />
+                  </div>
+                )}
+
                 {/* Personal Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

@@ -81,6 +81,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch passport from StudentRegistration using the same accessPin
+    const studentRegistration = await prisma.studentRegistration.findFirst({
+      where: {
+        accCode: accessPin,
+      },
+      select: {
+        passport: true,
+      },
+    });
+
     // Create PDF document
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595, 842]); // A4 size
@@ -246,6 +256,11 @@ export async function GET(request: NextRequest) {
     const infoBoxTopY = currentY + 10;
     const infoBoxH = infoPad * 2 + infoRowH * 4;
 
+    // Calculate passport dimensions
+    const passportWidth = 80;
+    const passportHeight = 100;
+    const hasPassport = studentRegistration?.passport;
+
     page.drawRectangle({
       x: infoBoxX,
       y: infoBoxTopY - infoBoxH,
@@ -255,15 +270,72 @@ export async function GET(request: NextRequest) {
       borderWidth: 1,
     });
 
+    // Try to embed passport photo if available
+    let passportImage = null;
+    if (hasPassport && studentRegistration.passport) {
+      try {
+        console.log('Attempting to fetch passport from:', studentRegistration.passport);
+        
+        // Check if it's a data URL
+        if (studentRegistration.passport.startsWith('data:')) {
+          // Extract base64 data from data URL
+          const base64Data = studentRegistration.passport.split(',')[1];
+          const passportBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          
+          // Try to embed as PNG or JPG
+          try {
+            passportImage = await pdfDoc.embedPng(passportBytes);
+          } catch {
+            passportImage = await pdfDoc.embedJpg(passportBytes);
+          }
+        } else {
+          // It's a URL - fetch it
+          const passportResponse = await fetch(studentRegistration.passport);
+          if (!passportResponse.ok) {
+            console.error('Failed to fetch passport, status:', passportResponse.status);
+          } else {
+            const passportBuffer = await passportResponse.arrayBuffer();
+            const passportBytes = new Uint8Array(passportBuffer);
+            
+            // Try to embed as PNG or JPG
+            try {
+              passportImage = await pdfDoc.embedPng(passportBytes);
+            } catch {
+              passportImage = await pdfDoc.embedJpg(passportBytes);
+            }
+          }
+        }
+        
+        // Draw passport photo on the left side of info box
+        if (passportImage) {
+          console.log('Successfully embedded passport photo');
+          page.drawImage(passportImage, {
+            x: infoBoxX + 8,
+            y: infoBoxTopY - infoBoxH + 8,
+            width: passportWidth,
+            height: passportHeight,
+          });
+        } else {
+          console.log('Passport image is null after embedding attempt');
+        }
+      } catch (err) {
+        console.error('Failed to embed passport photo:', err);
+        console.error('Passport URL was:', studentRegistration.passport);
+      }
+    } else {
+      console.log('No passport available. hasPassport:', hasPassport, 'passport value:', studentRegistration?.passport);
+    }
+
     // Candidate Name and Sex (same line)
     const candidateName = [result.fName, result.mName, result.lName]
       .filter(Boolean)
       .join(' ')
       .toUpperCase();
     
+    const textStartX = hasPassport && passportImage ? infoBoxX + passportWidth + 18 : infoBoxX + 8;
     let infoY = infoBoxTopY - infoPad - 12;
-    page.drawText(`Candidate Name: `, { x: infoBoxX + 8, y: infoY, size: 9, font });
-    page.drawText(candidateName || 'N/A', { x: infoBoxX + 8 + 95, y: infoY, size: 9, font: bold });
+    page.drawText(`Candidate Name: `, { x: textStartX, y: infoY, size: 9, font });
+    page.drawText(candidateName || 'N/A', { x: textStartX + 95, y: infoY, size: 9, font: bold });
     
     const sexLabelX = infoBoxX + infoBoxW - 80;
     page.drawText(`Sex: `, { x: sexLabelX, y: infoY, size: 9, font });
@@ -273,22 +345,22 @@ export async function GET(request: NextRequest) {
     drawDottedHLine(infoY + 10, infoBoxX + 6, infoBoxX + infoBoxW - 6);
 
     // School
-    page.drawText(`School : `, { x: infoBoxX + 8, y: infoY, size: 9, font });
-    page.drawText((result.schoolName || 'N/A').toUpperCase(), { x: infoBoxX + 8 + 45, y: infoY, size: 9, font: bold });
+    page.drawText(`School : `, { x: textStartX, y: infoY, size: 9, font });
+    page.drawText((result.schoolName || 'N/A').toUpperCase(), { x: textStartX + 45, y: infoY, size: 9, font: bold });
 
     infoY -= infoRowH;
     drawDottedHLine(infoY + 10, infoBoxX + 6, infoBoxX + infoBoxW - 6);
 
     // Local Government Area
-    page.drawText(`Local Government Area: `, { x: infoBoxX + 8, y: infoY, size: 9, font });
-    page.drawText((result.lgaCd || 'N/A').toUpperCase(), { x: infoBoxX + 8 + 130, y: infoY, size: 9, font: bold });
+    page.drawText(`Local Government Area: `, { x: textStartX, y: infoY, size: 9, font });
+    page.drawText((result.lgaCd || 'N/A').toUpperCase(), { x: textStartX + 130, y: infoY, size: 9, font: bold });
 
     infoY -= infoRowH;
     drawDottedHLine(infoY + 10, infoBoxX + 6, infoBoxX + infoBoxW - 6);
 
     // Examination Number
-    page.drawText(`Examination Number: `, { x: infoBoxX + 8, y: infoY, size: 9, font });
-    page.drawText(result.examinationNo || 'N/A', { x: infoBoxX + 8 + 115, y: infoY, size: 9, font: bold });
+    page.drawText(`Examination Number: `, { x: textStartX, y: infoY, size: 9, font });
+    page.drawText(result.examinationNo || 'N/A', { x: textStartX + 115, y: infoY, size: 9, font: bold });
 
     currentY = infoBoxTopY - infoBoxH - 18;
 

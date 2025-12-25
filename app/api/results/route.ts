@@ -92,8 +92,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ✅ Return ONLY the result object
-    return NextResponse.json(result, { status: 200 });
+    // Fetch passport from StudentRegistration using the same accessPin
+    const studentRegistration = await prisma.studentRegistration.findFirst({
+      where: {
+        accCode: accessPin,
+      },
+      select: {
+        passport: true,
+      },
+    });
+
+    // ✅ Return result with passport from StudentRegistration
+    return NextResponse.json({
+      ...result,
+      passport: studentRegistration?.passport || null,
+    }, { status: 200 });
 
   } catch (error) {
     console.error('Error fetching result:', error);

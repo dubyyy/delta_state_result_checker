@@ -405,8 +405,9 @@ const Validation = () => {
       // Column widths
       const colSN = 40;
       const colExamNo = 90;
-      const colNames = tableWidth - colSN - colExamNo - 60;
-      const colSex = 60;
+      const colSex = 40;
+      const colDOB = 70;
+      const colNames = tableWidth - colSN - colExamNo - colSex - colDOB;
 
       // Table settings
       const rowHeight = 20;
@@ -454,6 +455,11 @@ const Validation = () => {
           end: { x: margin + colSN + colExamNo + colNames, y: currentY - headerHeight },
           thickness: 1,
         });
+        page.drawLine({
+          start: { x: margin + colSN + colExamNo + colNames + colSex, y: currentY },
+          end: { x: margin + colSN + colExamNo + colNames + colSex, y: currentY - headerHeight },
+          thickness: 1,
+        });
 
         // Header text
         page.drawText('S/N', {
@@ -475,7 +481,13 @@ const Validation = () => {
           font: timesRomanBoldFont,
         });
         page.drawText('SEX', {
-          x: margin + colSN + colExamNo + colNames + 15,
+          x: margin + colSN + colExamNo + colNames + 10,
+          y: currentY - 17,
+          size: 11,
+          font: timesRomanBoldFont,
+        });
+        page.drawText('DOB', {
+          x: margin + colSN + colExamNo + colNames + colSex + 5,
           y: currentY - 17,
           size: 11,
           font: timesRomanBoldFont,
@@ -528,6 +540,11 @@ const Validation = () => {
           end: { x: margin + colSN + colExamNo + colNames, y: currentY - rowHeight },
           thickness: 1,
         });
+        page.drawLine({
+          start: { x: margin + colSN + colExamNo + colNames + colSex, y: currentY },
+          end: { x: margin + colSN + colExamNo + colNames + colSex, y: currentY - rowHeight },
+          thickness: 1,
+        });
 
         // Full name
         const fullName = `${student.lastname.toUpperCase()} ${(student.othername || "").toUpperCase()} ${student.firstname.toUpperCase()}`;
@@ -568,9 +585,22 @@ const Validation = () => {
         });
         
         page.drawText(student.gender.charAt(0).toUpperCase(), {
-          x: margin + colSN + colExamNo + colNames + 20,
+          x: margin + colSN + colExamNo + colNames + 15,
           y: currentY - 14,
           size: 10,
+          font: timesRomanFont,
+        });
+        
+        // Format and display date of birth
+        const dob = student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        }).replace(/\//g, '/') : '';
+        page.drawText(dob, {
+          x: margin + colSN + colExamNo + colNames + colSex + 5,
+          y: currentY - 14,
+          size: 9,
           font: timesRomanFont,
         });
 
@@ -775,11 +805,12 @@ const Validation = () => {
         };
         
         // Prepare row data
+        const lgaIndex = LGAS.findIndex(lga => lga.code === lgaCode) + 1;
         const rowData = [
           truncateText(student.lastname.toUpperCase(), colLastName - 4, 7),
           truncateText((student.othername || "").toUpperCase(), colMiddleName - 4, 7),
           truncateText(student.firstname.toUpperCase(), colFirstName - 4, 7),
-          lgaCode,
+          String(lgaIndex),
           schoolCode,
           student.studentNumber,
           student.gender.charAt(0).toUpperCase(),
