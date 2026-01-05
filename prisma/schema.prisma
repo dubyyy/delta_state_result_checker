@@ -52,33 +52,32 @@ model VerificationToken {
 }
 
 model Result {
-  id            Int       @id @default(autoincrement())
-  sessionYr     String
-  fName         String
-  mName         String?
-  lName         String
-  dateOfBirth   DateTime?
-  sexCd         String
-  institutionCd String?
-  schoolName    String
-  lgaCd         String
-  examinationNo String    @unique
-  eng           Float?
-  engGrd        String?
-  arit          Float?
-  aritGrd       String?
-  gp            Float?
-  gpGrd         String?
-  rgs           Float?
-  rgsGrd        String?
-  rgstype       String?   // Added: Religious type (IRS/CRS)
   remark        String?
   accessPin     String
-  blocked       Boolean   @default(false) // Added: Block status
+  arit          Float?
+  aritGrd       String?
+  blocked       Boolean   @default(false)
+  dateOfBirth   DateTime?
+  eng           Float?
+  engGrd        String?
+  examinationNo String    @unique
+  fName         String
+  gp            Float?
+  gpGrd         String?
+  institutionCd String?
+  lName         String
+  lgaCd         String
+  mName         String?
+  rgs           Float?
+  rgsGrd        String?
+  rgstype       String?
+  schoolName    String
+  sessionYr     String
+  sexCd         String
+  id            Int       @id @default(autoincrement())
 
   @@map("Result")
 }
-
 
 model School {
   id                      String                @id @default(cuid())
@@ -90,10 +89,10 @@ model School {
   updatedAt               DateTime              @updatedAt
   registrationOpen        Boolean               @default(true)
   accessPin               String?
-  blocked                 Boolean               @default(false) // Added: Block status
-  religiousClassification String?               // Added: Religious classification (Christian/Muslim)
-  studentRegistrations    StudentRegistration[]
+  blocked                 Boolean               @default(false)
+  religiousClassification String?
   postRegistrations       PostRegistration[]
+  studentRegistrations    StudentRegistration[]
 
   @@unique([lgaCode, schoolCode])
   @@index([lgaCode])
@@ -106,7 +105,6 @@ model StudentRegistration {
   firstname        String
   othername        String?
   lastname         String
-  dateOfBirth      DateTime?
   gender           String
   schoolType       String
   passport         String?
@@ -130,6 +128,7 @@ model StudentRegistration {
   lateRegistration Boolean   @default(false)
   prcd             Int       @default(1)
   year             String    @default("2025/2026")
+  dateOfBirth      DateTime?
   school           School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
@@ -195,9 +194,9 @@ model SchoolData {
   schCode   String
   progID    String
   schName   String
-  blocked   Boolean  @default(false) // Added: Block status
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  blocked   Boolean  @default(false)
 
   @@unique([lgaCode, schCode])
   @@index([lgaCode])

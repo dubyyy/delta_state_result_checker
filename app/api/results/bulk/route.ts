@@ -57,7 +57,7 @@ interface CSVRow {
   RGSGRD: string;
   RGSTYPE: string; // Added: Religious type (IRS/CRS)
   REMARK: string;
-  ACCCESS_PIN: string;
+  ACCESS_PIN: string;
 }
 
 function parseCSV(csvText: string): CSVRow[] {
@@ -109,7 +109,7 @@ function mapCSVRowToResult(row: CSVRow) {
     rgsGrd: row.RGSGRD || null,
     rgstype: row.RGSTYPE || null,
     remark: row.REMARK || null,
-    accessPin: row.ACCCESS_PIN,
+    accessPin: row.ACCESS_PIN || `PIN-${row.EXAMINATIONNO}`,
   };
 }
 
