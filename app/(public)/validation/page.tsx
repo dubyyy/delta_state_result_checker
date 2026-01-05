@@ -368,7 +368,7 @@ const Validation = () => {
     let currentY = pageHeight - margin;
 
     // Line 1: Ministry header
-    centerText('MINISTRY OF PRIMRY EDUCATION ASABA DELTA STATE', 14, currentY, boldFont);
+    centerText('MINISTRY OF PRIMARY EDUCATION ASABA DELTA STATE', 14, currentY, boldFont);
     currentY -= 25;
 
     // Line 2: LGA and School information
@@ -1056,9 +1056,221 @@ const Validation = () => {
     }
   };
 
+  const handlePrintNameNoDOB = async () => {
+    try {
+      // Create a new PDF document
+      const pdfDoc = await PDFDocument.create();
+      const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+      const sortedRegs = [...registrations].sort((a, b) =>
+        a.studentNumber.localeCompare(b.studentNumber, undefined, { numeric: true, sensitivity: 'base' })
+      );
+
+      // Page dimensions
+      const pageWidth = 595; // A4 width in points
+      const pageHeight = 842; // A4 height in points
+      const margin = 50;
+      const tableWidth = pageWidth - 2 * margin;
+      
+      // Column widths (without DOB)
+      const colSN = 40;
+      const colExamNo = 90;
+      const colSex = 40;
+      const colNames = tableWidth - colSN - colExamNo - colSex;
+
+      // Table settings
+      const rowHeight = 20;
+      const headerHeight = 25;
+      let page = pdfDoc.addPage([pageWidth, pageHeight]);
+      
+      // Draw standardized header
+      let currentY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
+
+      // Function to check if new page is needed
+      const checkNewPage = () => {
+        if (currentY < margin + rowHeight) {
+          page = pdfDoc.addPage([pageWidth, pageHeight]);
+          currentY = drawStandardHeader(page, timesRomanBoldFont, timesRomanFont, pageWidth, pageHeight, margin);
+          drawTableHeader();
+        }
+      };
+
+      // Function to draw table header
+      const drawTableHeader = () => {
+        // Header background
+        page.drawRectangle({
+          x: margin,
+          y: currentY - headerHeight,
+          width: tableWidth,
+          height: headerHeight,
+          color: rgb(0.95, 0.95, 0.95),
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
+        // Draw column borders
+        page.drawLine({
+          start: { x: margin + colSN, y: currentY },
+          end: { x: margin + colSN, y: currentY - headerHeight },
+          thickness: 1,
+        });
+        page.drawLine({
+          start: { x: margin + colSN + colExamNo, y: currentY },
+          end: { x: margin + colSN + colExamNo, y: currentY - headerHeight },
+          thickness: 1,
+        });
+        page.drawLine({
+          start: { x: margin + colSN + colExamNo + colNames, y: currentY },
+          end: { x: margin + colSN + colExamNo + colNames, y: currentY - headerHeight },
+          thickness: 1,
+        });
+
+        // Header text
+        page.drawText('S/N', {
+          x: margin + 10,
+          y: currentY - 17,
+          size: 11,
+          font: timesRomanBoldFont,
+        });
+        page.drawText('EXAM NO.', {
+          x: margin + colSN + 5,
+          y: currentY - 17,
+          size: 11,
+          font: timesRomanBoldFont,
+        });
+        page.drawText('NAMES', {
+          x: margin + colSN + colExamNo + 5,
+          y: currentY - 17,
+          size: 11,
+          font: timesRomanBoldFont,
+        });
+        page.drawText('SEX', {
+          x: margin + colSN + colExamNo + colNames + 10,
+          y: currentY - 17,
+          size: 11,
+          font: timesRomanBoldFont,
+        });
+
+        currentY -= headerHeight;
+      };
+
+      // Draw initial header
+      drawTableHeader();
+
+      // Draw table rows
+      sortedRegs.forEach((student, index) => {
+        checkNewPage();
+
+        // Row background (alternating)
+        if (index % 2 === 0) {
+          page.drawRectangle({
+            x: margin,
+            y: currentY - rowHeight,
+            width: tableWidth,
+            height: rowHeight,
+            color: rgb(0.98, 0.98, 0.98),
+          });
+        }
+
+        // Row border
+        page.drawRectangle({
+          x: margin,
+          y: currentY - rowHeight,
+          width: tableWidth,
+          height: rowHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
+        // Draw column borders
+        page.drawLine({
+          start: { x: margin + colSN, y: currentY },
+          end: { x: margin + colSN, y: currentY - rowHeight },
+          thickness: 1,
+        });
+        page.drawLine({
+          start: { x: margin + colSN + colExamNo, y: currentY },
+          end: { x: margin + colSN + colExamNo, y: currentY - rowHeight },
+          thickness: 1,
+        });
+        page.drawLine({
+          start: { x: margin + colSN + colExamNo + colNames, y: currentY },
+          end: { x: margin + colSN + colExamNo + colNames, y: currentY - rowHeight },
+          thickness: 1,
+        });
+
+        // Full name
+        const fullName = `${student.lastname.toUpperCase()} ${(student.othername || "").toUpperCase()} ${student.firstname.toUpperCase()}`;
+        
+        // Row text
+        page.drawText(`${index + 1}`, {
+          x: margin + 10,
+          y: currentY - 14,
+          size: 10,
+          font: timesRomanFont,
+        });
+        page.drawText(student.studentNumber, {
+          x: margin + colSN + 5,
+          y: currentY - 14,
+          size: 10,
+          font: timesRomanFont,
+        });
+        
+        // Truncate name if too long
+        const maxNameWidth = colNames - 10;
+        let nameToDisplay = fullName;
+        let nameWidth = timesRomanFont.widthOfTextAtSize(nameToDisplay, 10);
+        
+        while (nameWidth > maxNameWidth && nameToDisplay.length > 0) {
+          nameToDisplay = nameToDisplay.slice(0, -1);
+          nameWidth = timesRomanFont.widthOfTextAtSize(nameToDisplay + '...', 10);
+        }
+        
+        if (nameToDisplay !== fullName) {
+          nameToDisplay += '...';
+        }
+        
+        page.drawText(nameToDisplay, {
+          x: margin + colSN + colExamNo + 5,
+          y: currentY - 14,
+          size: 10,
+          font: timesRomanFont,
+        });
+        
+        page.drawText(student.gender.charAt(0).toUpperCase(), {
+          x: margin + colSN + colExamNo + colNames + 15,
+          y: currentY - 14,
+          size: 10,
+          font: timesRomanFont,
+        });
+
+        currentY -= rowHeight;
+      });
+
+      // Save the PDF
+      const pdfBytes = await pdfDoc.save();
+      
+      // Create a blob and download
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `student-names-no-dob-${authenticatedSchool.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
   const handlePrint = () => {
     if (printType === "name") {
       handlePrintName();
+    } else if (printType === "name-no-dob") {
+      handlePrintNameNoDOB();
     } else if (printType === "ca") {
       handlePrintCA();
     } else if (printType === "photo") {
@@ -1323,7 +1535,8 @@ const Validation = () => {
                                   <SelectValue placeholder="Select print type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="name">Print Student Names List</SelectItem>
+                                  <SelectItem value="name">Print Student Names List with DOB</SelectItem>
+                                  <SelectItem value="name-no-dob">Print Student Names List</SelectItem>
                                   <SelectItem value="ca">Print Continuous Assessment Scores</SelectItem>
                                   <SelectItem value="photo">Print Student Photos</SelectItem>
                                 </SelectContent>
