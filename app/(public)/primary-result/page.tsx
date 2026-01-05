@@ -374,27 +374,18 @@ const PrimaryResult = () => {
                         <span className="text-sm font-medium">English Studies</span>
                         <span className="font-bold text-lg">{resultData.engGrd || 'N/A'}</span>
                       </div>
-                      {resultData.eng && (
-                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.eng}</div>
-                      )}
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">Mathematics</span>
                         <span className="font-bold text-lg">{resultData.aritGrd || 'N/A'}</span>
                       </div>
-                      {resultData.arit && (
-                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.arit}</div>
-                      )}
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">General Paper</span>
                         <span className="font-bold text-lg">{resultData.gpGrd || 'N/A'}</span>
                       </div>
-                      {resultData.gp && (
-                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.gp}</div>
-                      )}
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex justify-between items-center">
@@ -407,9 +398,6 @@ const PrimaryResult = () => {
                         </span>
                         <span className="font-bold text-lg">{resultData.rgsGrd || 'N/A'}</span>
                       </div>
-                      {resultData.rgs && (
-                        <div className="text-xs text-gray-600 mt-1">Score: {resultData.rgs}</div>
-                      )}
                       {resultData.rgstype && (
                         <div className="text-xs text-gray-500 mt-1">Type: {resultData.rgstype}</div>
                       )}
