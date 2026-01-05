@@ -98,9 +98,13 @@ const PrimaryResult = () => {
   const handlePrint = () => {
     if (!resultData) return;
 
+    console.log('DEBUG: resultData.dateOfBirth =', resultData.dateOfBirth);
     const candidateName = [resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ');
     const year = resultData.sessionYr || 'N/A';
     const printedDate = formatPrintedDate(new Date());
+    const dateOfBirth = resultData.dateOfBirth 
+      ? new Date(resultData.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : 'N/A';
     const logoUrl = `${window.location.origin}/delta-logo.png`;
     const passportUrl = resultData.passport || '';
     const religiousSubject = resultData.rgstype === 'IRS' 
@@ -182,6 +186,9 @@ const PrimaryResult = () => {
               <table class="infoTable" style="flex: 1;">
                 <tr>
                   <td>Candidate Name: ${candidateName || 'N/A'} Sex: ${resultData.sexCd || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td>Date of Birth: ${dateOfBirth}</td>
                 </tr>
                 <tr>
                   <td>School : ${resultData.schoolName || 'N/A'}</td>
@@ -342,6 +349,10 @@ const PrimaryResult = () => {
                   <div>
                     <p className="text-sm text-gray-500">Sex</p>
                     <p className="font-medium">{resultData.sexCd || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Date of Birth</p>
+                    <p className="font-medium">{resultData.dateOfBirth ? new Date(resultData.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Access Pin</p>

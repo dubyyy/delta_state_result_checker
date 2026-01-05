@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
     const infoRowH = 18;
     const infoPad = 8;
     const infoBoxTopY = currentY + 10;
-    const infoBoxH = infoPad * 2 + infoRowH * 4;
+    const infoBoxH = infoPad * 2 + infoRowH * 5;
 
     // Calculate passport dimensions
     const passportWidth = 80;
@@ -340,6 +340,16 @@ export async function GET(request: NextRequest) {
     const sexLabelX = infoBoxX + infoBoxW - 80;
     page.drawText(`Sex: `, { x: sexLabelX, y: infoY, size: 9, font });
     page.drawText(result.sexCd || 'N/A', { x: sexLabelX + 25, y: infoY, size: 9, font: bold });
+
+    infoY -= infoRowH;
+    drawDottedHLine(infoY + 10, infoBoxX + 6, infoBoxX + infoBoxW - 6);
+
+    // Date of Birth
+    const dobStr = result.dateOfBirth 
+      ? new Date(result.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : 'N/A';
+    page.drawText(`Date of Birth: `, { x: textStartX, y: infoY, size: 9, font });
+    page.drawText(dobStr, { x: textStartX + 80, y: infoY, size: 9, font: bold });
 
     infoY -= infoRowH;
     drawDottedHLine(infoY + 10, infoBoxX + 6, infoBoxX + infoBoxW - 6);
