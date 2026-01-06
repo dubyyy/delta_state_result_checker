@@ -187,9 +187,9 @@ const PrimaryResult = () => {
                 <tr>
                   <td>Candidate Name: ${candidateName || 'N/A'} Sex: ${resultData.sexCd || 'N/A'}</td>
                 </tr>
-                <tr>
+                ${withPassport ? `<tr>
                   <td>Date of Birth: ${dateOfBirth}</td>
-                </tr>
+                </tr>` : ''}
                 <tr>
                   <td>School : ${resultData.schoolName || 'N/A'}</td>
                 </tr>
@@ -232,8 +232,7 @@ const PrimaryResult = () => {
         </div>
 
         <div class="footer">
-          <div>DELTA STATE MINISTRY OF PRIMARY EDUCATION PORTAL -</div>
-          <div class="footerSmall">Powered by Ventud Limited</div>
+          <div>DELTA STATE MINISTRY OF PRIMARY EDUCATION PORTAL</div>
         </div>
       </div>
     </div>
