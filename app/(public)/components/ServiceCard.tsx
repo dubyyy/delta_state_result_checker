@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { LucideIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface ServiceCardProps {
   title: string;
@@ -18,26 +17,21 @@ const ServiceCard = ({
   variant = "primary",
 }: ServiceCardProps) => {
   return (
-    <Link href={href}>
-      <Card className="h-full transition-all duration-300 hover:shadow-hover hover:-translate-y-1 cursor-pointer border-2 hover:border-primary/50">
-        <CardContent className="p-6">
-          <div
-            className={`inline-flex p-3 rounded-lg mb-4 ${
-              variant === "primary" ? "bg-primary/10" : "bg-secondary/30"
-            }`}
-          >
-            <Icon
-              className={`h-6 w-6 ${
-                variant === "primary" ? "text-primary" : "text-secondary-foreground/90"
-              }`}
-            />
+    <Link href={href} className="block">
+      <div className="h-full border border-border bg-card p-6 md:p-8 xl:p-10 hover:border-primary/60 transition-colors">
+        <div className="flex items-start gap-4 md:gap-5 xl:gap-6">
+          <div className="flex-shrink-0 mt-0.5">
+            <Icon className="h-6 w-6 md:h-7 md:w-7 xl:h-8 xl:w-8 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold mb-2 text-card-foreground">
-            {title}
-          </h3>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </CardContent>
-      </Card>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg md:text-xl xl:text-lg font-semibold text-foreground mb-2">
+              {title}
+            </h3>
+            <p className="text-sm md:text-sm text-muted-foreground leading-relaxed lg:text-sm">{description}</p>
+          </div>
+          
+        </div>
+      </div>
     </Link>
   );
 };

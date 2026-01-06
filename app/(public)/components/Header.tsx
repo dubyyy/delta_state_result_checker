@@ -1,6 +1,5 @@
 "use client";
 
-import { Building2, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
 import { useEffect, useState } from "react";
@@ -26,38 +25,37 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="gradient-primary text-primary-foreground shadow-lg sticky top-0 z-50 backdrop-blur-sm">
-      <div className="container mx-auto px-4 py-4 md:py-5">
+    <header className="bg-primary text-primary-foreground sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 md:py-4 xl:px-8 2xl:px-12 max-w-7xl xl:max-w-[1400px] 2xl:max-w-[1600px]">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 md:gap-4 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
-               <div className="relative h-16 w-12 md:h-20 md:w-16 lg:h-26 lg:w-16">
-                <Image src="/delta-logo.png" alt="Delta State Logo" fill className="object-contain" priority />
-                </div>
+          <Link href="/" className="flex items-center gap-3 md:gap-4">
+            <div className="relative h-14 w-11 md:h-16 md:w-14 lg:h-18 lg:w-14 xl:h-20 xl:w-16 flex-shrink-0">
+              <Image src="/delta-logo.png" alt="Delta State Government Seal" fill className="object-contain" priority />
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold leading-tight tracking-tight">
+            <div className="border-l border-primary-foreground/30 pl-3 md:pl-4">
+              <p className="text-xs md:text-sm xl:text-base font-medium tracking-wide uppercase opacity-90">
                 Delta State Government
+              </p>
+              <h1 className="text-base md:text-lg lg:text-xl xl:text-2xl font-semibold leading-tight">
+                Ministry of Primary Education
               </h1>
-              <p className="text-md md:text-xl lg:text-3xl opacity-90 flex items-center gap-2">
-                
-                Ministry of Primary Education Portal
+              <p className="text-xs md:text-sm xl:text-base opacity-80">
+                Official Portal
               </p>
             </div>
           </Link>
           <div className="flex items-center gap-4">
             {schoolInfo && (
-              <div className="hidden md:block text-right text-sm">
+              <div className="hidden md:block text-right text-xs border-r border-primary-foreground/30 pr-4">
                 <p className="font-semibold">{schoolInfo.schoolName}</p>
-                <p className="text-xs opacity-80">LGA: {schoolInfo.lgaCode} | School: {schoolInfo.schoolCode}</p>
+                <p className="opacity-80">LGA: {schoolInfo.lgaCode} | Code: {schoolInfo.schoolCode}</p>
               </div>
             )}
             <LogoutButton />
           </div>
         </div>
       </div>
-      <div className="h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+      <div className="h-0.5 bg-primary-foreground/20"></div>
     </header>
   );
 };

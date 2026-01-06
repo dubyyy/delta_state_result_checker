@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false, // Remove X-Powered-By header for security
   compress: true, // Enable gzip compression
   
-  // Output optimization for serverless deployment
+  // Output optimization for serverless deployment (Vercel, Railway, etc.)
   output: 'standalone',
   
   // Turbopack configuration (disabled due to HMR issues in 16.0.8)
@@ -13,15 +13,17 @@ const nextConfig: NextConfig = {
   //   root: process.cwd(), // Set the correct root directory
   // },
   
-  // Optimize images
+  // Optimize images with CDN support
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+    // Enable image optimization at edge
+    unoptimized: false,
   },
   
-  // Optimize API routes
+  // Optimize for 6,000+ concurrent users
   experimental: {
     // Enable optimized package imports
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],

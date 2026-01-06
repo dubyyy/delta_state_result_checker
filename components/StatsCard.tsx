@@ -19,10 +19,10 @@ export function StatsCard({ title, value, icon: Icon, trend }: StatsCardProps) {
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className="h-4 w-4 xl:h-5 xl:w-5 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl xl:text-3xl font-bold">{value}</div>
         {trend && (
           <p
             className={cn(

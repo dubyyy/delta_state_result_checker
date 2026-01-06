@@ -1,64 +1,73 @@
-import { Mail, Phone, MapPin } from "lucide-react";
-
 const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground mt-auto">
-      <div className="container mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {/* Branding / About */}
+      <div className="container mx-auto px-4 py-8 xl:px-8 xl:py-12 2xl:px-12 max-w-7xl xl:max-w-[1400px] 2xl:max-w-[1600px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 xl:gap-12 text-sm xl:text-base">
+          {/* Ministry Information */}
           <div>
-            <h2 className="text-xl font-bold mb-3">DSG MOPE</h2>
-            <p className="text-sm opacity-90 leading-relaxed">
-              Delta State Government Ministry of Primary Education — empowering
-              education through accessible digital resources and transparency.
+            <h2 className="font-semibold text-base xl:text-lg mb-3 xl:mb-4 uppercase tracking-wide">
+              Ministry of Primary Education
+            </h2>
+            <p className="opacity-90 leading-relaxed">
+              Delta State Government<br />
+              Ministry of Primary Education<br />
+              Asaba, Delta State, Nigeria
             </p>
           </div>
 
-          {/* Contact Info */}
+          {/* Contact Information */}
           <div>
-            <h3 className="font-semibold text-lg mb-4 border-l-4 border-accent pl-3">
-              Contact Us
+            <h3 className="font-semibold text-base xl:text-lg mb-3 xl:mb-4 uppercase tracking-wide">
+              Contact Information
             </h3>
-            <div className="space-y-3 text-sm opacity-90">
-              <div className="flex items-center gap-3 hover:opacity-100 transition">
-                <Mail className="h-4 w-4" />
-                <span>info@dsgmope.ng</span>
-              </div>
-              <div className="flex items-center gap-3 hover:opacity-100 transition">
-                <MapPin className="h-4 w-4" />
-                <span>Asaba, Delta State, Nigeria</span>
-              </div>
-              <div className="flex items-center gap-3 hover:opacity-100 transition">
-                <Phone className="h-4 w-4" />
-                <span>+234 (0)901 234 5678</span>
-              </div>
+            <div className="space-y-2 opacity-90">
+              <p>Email: info@dsgmope.ng</p>
+              <p>Address: Ministry Secretariat, Asaba</p>
+              <p>Telephone: +234 (0)901 234 5678</p>
             </div>
           </div>
 
-          {/* Official Portal */}
+          {/* Official Resources */}
           <div>
-            <h3 className="font-semibold text-lg mb-4 border-l-4 border-accent pl-3">
-              Official Portal
+            <h3 className="font-semibold text-base xl:text-lg mb-3 xl:mb-4 uppercase tracking-wide">
+              Official Resources
             </h3>
-            <p className="text-sm opacity-90 mb-4">
-              Delta State Government Ministry of Primary Education Portal
-            </p>
-            <a
-              href="https://www.dsgmope.ng"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block text-sm font-medium underline underline-offset-4 hover:text-accent transition"
-            >
-              Visit www.dsgmope.ng →
-            </a>
+            <div className="space-y-2 opacity-90">
+              <p>
+                <a
+                  href="https://www.dsgmope.ng"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:opacity-80"
+                >
+                  www.dsgmope.ng
+                </a>
+              </p>
+              <p>
+                <a
+                  href="https://www.deltastate.gov.ng"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:opacity-80"
+                >
+                  Delta State Government Portal
+                </a>
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Divider & Bottom Text */}
-        <div className="border-t border-primary-foreground/20 mt-10 pt-6 text-center text-sm opacity-75">
-          <p>
-            &copy; {new Date().getFullYear()} Delta State Government Ministry of
-            Primary Education. All rights reserved.
+        {/* Disclaimer and Copyright */}
+        <div className="border-t border-primary-foreground/20 mt-6 pt-4">
+          <p className="text-xs opacity-80 mb-3 leading-relaxed">
+            <strong>OFFICIAL NOTICE:</strong> This is an official portal of the Delta State Government, 
+            Ministry of Primary Education. Unauthorized access, misuse, or tampering with this system 
+            is prohibited and may be subject to legal action. All information provided is for official 
+            purposes only.
+          </p>
+          <p className="text-xs opacity-70 text-center">
+            &copy; {new Date().getFullYear()} Delta State Government, Ministry of Primary Education. 
+            All rights reserved.
           </p>
         </div>
       </div>

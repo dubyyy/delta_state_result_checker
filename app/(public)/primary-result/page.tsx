@@ -95,7 +95,7 @@ const PrimaryResult = () => {
     return d.replace(/\s/g, '-');
   };
 
-  const handlePrint = () => {
+  const handlePrint = (withPassport: boolean = true) => {
     if (!resultData) return;
 
     console.log('DEBUG: resultData.dateOfBirth =', resultData.dateOfBirth);
@@ -106,7 +106,7 @@ const PrimaryResult = () => {
       ? new Date(resultData.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
       : 'N/A';
     const logoUrl = `${window.location.origin}/delta-logo.png`;
-    const passportUrl = resultData.passport || '';
+    const passportUrl = withPassport ? (resultData.passport || '') : '';
     const religiousSubject = resultData.rgstype === 'IRS' 
       ? 'ISLAMIC RELIGIOUS STUDIES' 
       : resultData.rgstype === 'CRS' 
@@ -257,36 +257,36 @@ const PrimaryResult = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
    
       
-      <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-2xl mx-auto">
-          <Link href="/" className="inline-flex items-center gap-2 text-primary hover:underline mb-6">
+      <main className="flex-1 container mx-auto px-4 py-6 md:py-10 xl:px-8 2xl:px-12">
+        <div className="max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-auto">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-4">
             <ArrowLeft className="h-4 w-4" />
-            Back to Home
+            Return to Services
           </Link>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Check Primary Result</CardTitle>
+              <CardTitle className="text-lg md:text-xl">Primary Examination Result Verification</CardTitle>
               <CardDescription>
-                Enter your examination details to access your primary school results
+                Enter the required credentials to retrieve official examination results
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
+                  <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3">
                     <p className="text-sm font-medium">{error}</p>
                   </div>
                 )}
                 
-                <div className="space-y-2">
-                  <Label htmlFor="accessPin">Access Pin</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="accessPin" className="text-sm font-medium">Access Pin <span className="text-destructive">*</span></Label>
                   <Input
                     id="accessPin"
-                    placeholder="Enter your access pin"
+                    placeholder="Enter access pin"
                     type="text"
                     value={formData.accessPin}
                     onChange={handleChange}
@@ -295,11 +295,11 @@ const PrimaryResult = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="examNumber">Examination Number</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="examNumber" className="text-sm font-medium">Examination Number <span className="text-destructive">*</span></Label>
                   <Input
                     id="examNumber"
-                    placeholder="Enter your examination number"
+                    placeholder="Enter examination number"
                     type="text"
                     value={formData.examNumber}
                     onChange={handleChange}
@@ -309,7 +309,7 @@ const PrimaryResult = () => {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Fetching Result..." : "Check Result"}
+                  {loading ? "RETRIEVING RESULT..." : "VERIFY RESULT"}
                 </Button>
               </form>
             </CardContent>
@@ -318,124 +318,132 @@ const PrimaryResult = () => {
           {/* Result Display Card */}
           {resultData && (
             <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-xl">Examination Result</CardTitle>
+              <CardHeader className="border-b border-border pb-4">
+                <CardTitle className="text-lg">Official Examination Result</CardTitle>
                 <CardDescription>
-                  Result details for {[resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ')}
+                  Candidate: {[resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-5 pt-5">
                 {/* Passport Photo */}
                 {resultData.passport && (
                   <div className="flex justify-center">
                     <img 
                       src={resultData.passport} 
-                      alt="Passport Photo" 
-                      className="w-32 h-40 object-cover border-2 border-gray-300 rounded-lg shadow-md"
+                      alt="Candidate Photograph" 
+                      className="w-28 h-36 object-cover border border-border"
                     />
                   </div>
                 )}
 
                 {/* Personal Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Year</p>
-                    <p className="font-medium">{resultData.sessionYr}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Candidate Name</p>
-                    <p className="font-medium">{[resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ')}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Sex</p>
-                    <p className="font-medium">{resultData.sexCd || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Date of Birth</p>
-                    <p className="font-medium">{resultData.dateOfBirth ? new Date(resultData.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Access Pin</p>
-                    <p className="font-medium">{resultData.accessPin || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Examination Number</p>
-                    <p className="font-medium">{resultData.examinationNo}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Institution Code</p>
-                    <p className="font-medium">{resultData.institutionCd || 'N/A'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-gray-500">School</p>
-                    <p className="font-medium">{resultData.schoolName || 'N/A'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-gray-500">Local Government Area</p>
-                    <p className="font-medium">{resultData.lgaCd || 'N/A'}</p>
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Candidate Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Session Year</p>
+                      <p className="font-medium">{resultData.sessionYr}</p>
+                    </div>
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Candidate Name</p>
+                      <p className="font-medium">{[resultData.fName, resultData.mName, resultData.lName].filter(Boolean).join(' ')}</p>
+                    </div>
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Sex</p>
+                      <p className="font-medium">{resultData.sexCd || 'N/A'}</p>
+                    </div>
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Date of Birth</p>
+                      <p className="font-medium">{resultData.dateOfBirth ? new Date(resultData.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</p>
+                    </div>
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Access Pin</p>
+                      <p className="font-medium">{resultData.accessPin || 'N/A'}</p>
+                    </div>
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Examination Number</p>
+                      <p className="font-medium">{resultData.examinationNo}</p>
+                    </div>
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Institution Code</p>
+                      <p className="font-medium">{resultData.institutionCd || 'N/A'}</p>
+                    </div>
+                    <div className="border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">Local Government Area</p>
+                      <p className="font-medium">{resultData.lgaCd || 'N/A'}</p>
+                    </div>
+                    <div className="md:col-span-2 border-b border-border pb-2">
+                      <p className="text-xs text-muted-foreground uppercase">School</p>
+                      <p className="font-medium">{resultData.schoolName || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Grades */}
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">Subject Results</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">English Studies</span>
-                        <span className="font-bold text-lg">{resultData.engGrd || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Mathematics</span>
-                        <span className="font-bold text-lg">{resultData.aritGrd || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">General Paper</span>
-                        <span className="font-bold text-lg">{resultData.gpGrd || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">
+                <div className="pt-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Subject Results</h3>
+                  <table className="w-full text-sm border border-border">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th className="text-left px-3 py-2 border-b border-border font-semibold">Subject</th>
+                        <th className="text-center px-3 py-2 border-b border-border font-semibold w-24">Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="px-3 py-2 border-b border-border">English Studies</td>
+                        <td className="px-3 py-2 border-b border-border text-center font-semibold">{resultData.engGrd || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 border-b border-border">Mathematics</td>
+                        <td className="px-3 py-2 border-b border-border text-center font-semibold">{resultData.aritGrd || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 border-b border-border">General Paper</td>
+                        <td className="px-3 py-2 border-b border-border text-center font-semibold">{resultData.gpGrd || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 border-b border-border">
                           {resultData.rgstype === 'IRS' 
                             ? 'Islamic Religious Studies' 
                             : resultData.rgstype === 'CRS' 
                             ? 'Christian Religious Studies'
                             : 'Religious Studies'}
-                        </span>
-                        <span className="font-bold text-lg">{resultData.rgsGrd || 'N/A'}</span>
-                      </div>
-                      {resultData.rgstype && (
-                        <div className="text-xs text-gray-500 mt-1">Type: {resultData.rgstype}</div>
-                      )}
-                    </div>
-                  </div>
+                        </td>
+                        <td className="px-3 py-2 border-b border-border text-center font-semibold">{resultData.rgsGrd || 'N/A'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
 
                 {/* Remark */}
                 {resultData.remark && (
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-gray-500 mb-1">Remark</p>
-                    <p className="font-semibold text-lg px-3 py-2 bg-yellow-100 rounded-lg inline-block">
+                  <div className="pt-2">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Official Remark</h3>
+                    <p className="font-semibold text-base px-3 py-2 bg-accent border border-border inline-block">
                       {resultData.remark}
                     </p>
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="border-t pt-4 space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="border-t border-border pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <Button 
-                      onClick={handlePrint} 
+                      onClick={() => handlePrint(true)} 
                       variant="outline"
                       className="w-full"
                     >
                       <Printer className="h-4 w-4 mr-2" />
-                      Print Result
+                      PRINT RESULT
+                    </Button>
+                    <Button 
+                      onClick={() => handlePrint(false)} 
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      PRINT WITHOUT PASSPORT
                     </Button>
                     <Button 
                       onClick={handleDownloadPDF} 
@@ -443,7 +451,7 @@ const PrimaryResult = () => {
                       disabled={downloadingPDF}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      {downloadingPDF ? "Generating..." : "Download PDF"}
+                      {downloadingPDF ? "GENERATING..." : "DOWNLOAD PDF"}
                     </Button>
                   </div>
                 </div>
