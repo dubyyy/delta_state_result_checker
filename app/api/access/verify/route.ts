@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     // Validate against data.json
     const schools = schoolsData as SchoolData[];
     const schoolData = schools.find(
-      (s) => s.lCode === lgaCode && s.schCode === schoolCode
+      (s) => s.lgaCode === lgaCode && s.schCode === schoolCode
     );
 
     if (!schoolData) {
