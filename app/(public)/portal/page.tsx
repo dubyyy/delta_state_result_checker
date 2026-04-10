@@ -38,6 +38,7 @@ const PortalPage = () => {
   
   ];
 
+  // Force rebuild
   return (
     <AccessGuard>
       <div className="min-h-screen flex flex-col">
